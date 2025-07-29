@@ -65,7 +65,7 @@ function App() {
             <li className="nav-item"><Link className="nav-link" to="/global-business">Global Business</Link></li>
             <li className="nav-item"><Link className="nav-link" to="/news">News</Link></li>
           </ul>
-          <form className="form-inline my-2 my-lg-0 d-flex" onSubmit={handleSearchSubmit}>
+          <form className="form-inline my-2 my-lg-0 d-flex ms-auto" onSubmit={handleSearchSubmit}>
             <input
               className="form-control mr-sm-2"
               type="search"
