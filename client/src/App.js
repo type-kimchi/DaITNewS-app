@@ -8,7 +8,7 @@ import SearchResults from './SearchResults'; // Import the new SearchResults com
 function Home({ articles }) {
   return (
     <div className="container mt-4">
-      <h1 className="mb-4">Latest IT News</h1>
+      <h1 className="mb-4">DaITNew</h1>
       <div className="row">
         {articles.map(article => (
           <div className="col-md-4 mb-4" key={article.id}>
