@@ -91,7 +91,7 @@ function App() {
         <div className="container text-center">
           <p className="text-muted mb-1">Made by Sangwon Choi</p>
           <p className="mb-0">
-            <span style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 'bold' }}>Powered by Gemini</span>
+            <span style={{ background: 'linear-gradient(to right, #ff00ff, #8a2be2)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 'bold' }}>Powered by Gemini</span>
           </p>
           <a href="https://www.linkedin.com/in/sangwon-choi-542759176/" target="_blank" rel="noopener noreferrer" className="text-muted text-decoration-none">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-linkedin me-2" viewBox="0 0 16 16">
