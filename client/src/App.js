@@ -87,7 +87,7 @@ function App() {
         <Route path="/news" element={<CategoryPage articles={articles} category="News" />} />
         <Route path="/search" element={<SearchResults articles={articles} />} />
       </Routes>
-      <footer className="footer mt-auto py-3" style={{ backgroundColor: '#FF00FF' }}>
+      <footer className="footer mt-auto py-3" style={{ background: 'linear-gradient(to right, #434343, #000000)', color: '#ffffff' }}>
         <div className="container text-center">
           <p className="text-muted mb-1">Made by Sangwon Choi</p>
           <p className="mb-0">
