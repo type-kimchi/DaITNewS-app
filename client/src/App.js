@@ -87,6 +87,16 @@ function App() {
         <Route path="/news" element={<CategoryPage articles={articles} category="News" />} />
         <Route path="/search" element={<SearchResults articles={articles} />} />
       </Routes>
+      <footer className="footer mt-auto py-3 bg-light">
+        <div className="container text-center">
+          <a href="https://www.linkedin.com/in/sangwon-choi-542759176/" target="_blank" rel="noopener noreferrer" className="text-muted text-decoration-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-linkedin me-2" viewBox="0 0 16 16">
+              <path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542V13.394h2.401zm-1.2-5.33c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 5.33V9.567c0-.288.01-.46.09-.622.186-.349.63-.752 1.33-.752.973 0 1.371.738 1.371 1.817v3.789h2.401V9.567c0-1.954-1.013-2.83-2.398-2.83-1.178 0-1.78.66-2.093 1.185h.016V6.169H6.56v7.225h2.401z"/>
+            </svg>
+            LinkedIn
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }
