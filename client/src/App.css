@@ -1,14 +1,16 @@
-.App {
-  text-align: center;
+.article-square-img {
+  width: 100%;
+  height: 200px; /* Adjust as needed for desired square size */
+  object-fit: cover;
+  border-bottom: 4px solid #007bff; /* Thick blue border */
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.article-card {
+  border: 1px solid #ddd; /* Default border */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  transition: transform 0.2s ease-in-out;
+}
+
+.article-card:hover {
+  transform: translateY(-5px); /* Slight lift on hover */
 }
