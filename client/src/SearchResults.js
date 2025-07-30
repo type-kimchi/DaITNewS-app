@@ -30,7 +30,9 @@ function SearchResults({ articles }) {
             <div className="col-md-4 mb-4" key={article.id}>
               <Link to={`/article/${article.id}`} className="text-decoration-none text-dark">
                 <div className="card article-card">
-                  <img src={article.imageUrl} className="card-img-top article-square-img" alt={article.title} />
+                  <div className="article-square-img-container">
+                    <img src={article.imageUrl} className="article-square-img" alt={article.title} />
+                  </div>
                 </div>
               </Link>
             </div>
