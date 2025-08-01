@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 import ArticleDetail from './ArticleDetail';
-import CategoryPage from './CategoryPage'; // Import the new CategoryPage component
-import SearchResults from './SearchResults'; // Import the new SearchResults component
+// import CategoryPage from './CategoryPage'; // Import the new CategoryPage component
+// import SearchResults from './SearchResults'; // Import the new SearchResults component
+
+const CategoryPage = lazy(() => import('./CategoryPage'));
+const SearchResults = lazy(() => import('./SearchResults'));
 
 function Home({ articles }) {
   return (
@@ -85,11 +88,11 @@ function App() {
       <Routes>
         <Route path="/" element={<Home articles={articles} />} />
         <Route path="/article/:id" element={<ArticleDetail />} />
-        <Route path="/ai-cloud" element={<CategoryPage articles={articles} category="AI/Cloud" />} />
-        <Route path="/platform" element={<CategoryPage articles={articles} category="Daily IT News(데아뉴)" />} />
-        <Route path="/global-business" element={<CategoryPage articles={articles} category="Global Business" />} />
-        <Route path="/news" element={<CategoryPage articles={articles} category="News" />} />
-        <Route path="/search" element={<SearchResults articles={articles} />} />
+        <Route path="/ai-cloud" element={<Suspense fallback={<div>Loading...</div>}><CategoryPage articles={articles} category="AI/Cloud" /></Suspense>} />
+        <Route path="/platform" element={<Suspense fallback={<div>Loading...</div>}><CategoryPage articles={articles} category="Daily IT News(데아뉴)" /></Suspense>} />
+        <Route path="/global-business" element={<Suspense fallback={<div>Loading...</div>}><CategoryPage articles={articles} category="Global Business" /></Suspense>} />
+        <Route path="/news" element={<Suspense fallback={<div>Loading...</div>}><CategoryPage articles={articles} category="News" /></Suspense>} />
+        <Route path="/search" element={<Suspense fallback={<div>Loading...</div>}><SearchResults articles={articles} /></Suspense>} />
       </Routes>
       <footer className="footer mt-auto py-3" style={{ background: 'linear-gradient(to right, #434343, #000000)', color: '#ffffff' }}>
         <div className="container text-center">
