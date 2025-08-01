@@ -8,7 +8,7 @@ const articles = [
   {
     id: 1,
     title: '네이버, AI 및 클라우드 기술 강화',
-    imageUrl: 'https://picsum.photos/seed/article1/700/400',
+    imageUrl: '/images/article1.png',
     summary: "Naver Cloud's AI voice recognition service 'Clova Speech' passed the Financial Security Institute's 'Innovative Financial Service CSP Evaluation'.",
     category: 'AI/Cloud',
     date: '2025-07-24'
