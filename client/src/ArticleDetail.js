@@ -6,10 +6,23 @@ function ArticleDetail() {
   const [article, setArticle] = useState(null);
 
   useEffect(() => {
-    fetch(`http://localhost:5001/api/articles/${id}`)
-      .then(res => res.json())
-      .then(data => setArticle(data))
-      .catch(err => console.error(err));
+    console.log(`Fetching article with ID: ${id}`);
+    fetch(`/api/articles/${id}`)
+      .then(res => {
+        if (!res.ok) {
+          console.error(`HTTP error! status: ${res.status}`);
+          return res.text().then(text => Promise.reject(text));
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('Received article data:', data);
+        setArticle(data);
+      })
+      .catch(err => {
+        console.error('Error fetching article:', err);
+        setArticle(null); // Ensure loading state if error
+      });
   }, [id]);
 
   if (!article) {
