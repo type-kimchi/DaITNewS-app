@@ -96,11 +96,14 @@ app.get('/api/articles', (req, res) => {
 });
 
 app.get('/api/articles/:id', (req, res) => {
+  console.log(`Received request for article ID: ${req.params.id}`);
   const articleId = parseInt(req.params.id);
   const article = articles.find(a => a.id === articleId);
   if (article) {
+    console.log(`Found article: ${article.title}`);
     res.json(article);
   } else {
+    console.log(`Article with ID ${articleId} not found.`);
     res.status(404).send('Article not found');
   }
 });
