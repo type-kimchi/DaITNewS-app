@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 
 function ArticleDetail() {
   const { id } = useParams();
   const [article, setArticle] = useState(null);
+  const commentsContainerRef = useRef(null);
 
   useEffect(() => {
     console.log(`Fetching article with ID: ${id}`);
@@ -25,6 +26,29 @@ function ArticleDetail() {
       });
   }, [id]);
 
+  useEffect(() => {
+    if (!commentsContainerRef.current) return;
+
+    const commentsEl = commentsContainerRef.current; // Capture the current ref value
+
+    const script = document.createElement('script');
+    script.src = 'https://utteranc.es/client.js';
+    script.setAttribute('repo', 'type-kimchi/DaITNewS-app'); // Your GitHub repo
+    script.setAttribute('issue-term', 'pathname'); // Map comments to page path
+    script.setAttribute('theme', 'github-light'); // Or 'github-dark', 'preferred-color-scheme', etc.
+    script.setAttribute('crossorigin', 'anonymous');
+    script.setAttribute('async', '');
+
+    commentsEl.appendChild(script);
+
+    return () => {
+      // Cleanup: remove the script when the component unmounts
+      if (commentsEl && script.parentNode) {
+        commentsEl.removeChild(script);
+      }
+    };
+  }, [article]); // Re-run when article changes to ensure comments load for new article
+
   if (!article) {
     return <div>Loading article...</div>;
   }
@@ -36,6 +60,11 @@ function ArticleDetail() {
       <p>{article.summary}</p>
       <p><small className="text-muted">{article.category} - {article.date}</small></p>
       {/* In a real app, you'd have full article content here */}
+
+      <div className="comments-section mt-5">
+        <h2>Comments</h2>
+        <div ref={commentsContainerRef} />
+      </div>
     </div>
   );
 }
