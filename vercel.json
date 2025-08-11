@@ -4,11 +4,8 @@
     { "src": "client/package.json", "use": "@vercel/static-build", "config": { "distDir": "build" } }
   ],
   "routes": [
-    // API 라우트
     { "src": "/api/articles/(?<id>[^/]+)", "dest": "/api/index.js" },
     { "src": "/api/(.*)", "dest": "/api/index.js" },
-
-    // React SPA fallback
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/client/index.html" }
   ],
