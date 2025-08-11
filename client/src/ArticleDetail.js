@@ -35,7 +35,7 @@ function ArticleDetail() {
     script.src = 'https://utteranc.es/client.js';
     script.setAttribute('repo', 'type-kimchi/DaITNewS-app'); // Your GitHub repo
     script.setAttribute('issue-term', 'pathname'); // Map comments to page path
-    script.setAttribute('theme', 'github-light'); // Or 'github-dark', 'preferred-color-scheme', etc.
+    script.setAttribute('theme', 'github-dark'); // Or 'github-dark', 'preferred-color-scheme', etc.
     script.setAttribute('crossorigin', 'anonymous');
     script.setAttribute('async', '');
 
