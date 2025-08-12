@@ -120,16 +120,24 @@ function ArticleDetail() {
         />
         
         {/* Short descriptive title below thumbnail - like dafanew style */}
-        <div className="keyword-title-container mt-3 mb-4">
+        <div className="keyword-title-container mt-3 mb-4" style={{
+          border: '2px solid red',
+          padding: '10px',
+          backgroundColor: 'yellow'
+        }}>
+          <div style={{ color: 'red', fontSize: '12px' }}>
+            DEBUG: This should be visible!
+          </div>
           <p style={{
             fontSize: '1.1rem',
             fontWeight: '600',
             color: '#2d3748',
             lineHeight: '1.4',
             marginBottom: '0.5rem',
-            padding: '0 10px'
+            padding: '0 10px',
+            backgroundColor: 'lightblue'
           }}>
-            {article.shortTitle || article.summary}
+            TEST: {article.shortTitle || article.summary || 'NO DATA'}
           </p>
           
           {/* Category badge */}
@@ -141,7 +149,7 @@ function ArticleDetail() {
               letterSpacing: '0.3px'
             }}
           >
-            {article.category}
+            CATEGORY: {article.category || 'NO CATEGORY'}
           </span>
         </div>
       </div>
