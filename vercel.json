@@ -12,5 +12,5 @@
     { "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|json))", "dest": "/client/$1" },
     { "src": "/(.*)", "dest": "/client/index.html" }
   ],
-  "installCommand": "npm install --prefix ./client && npm install"
+  "installCommand": "npm install --prefix client --force && npm install --force"
 }
