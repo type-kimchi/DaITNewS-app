@@ -157,6 +157,8 @@ function ArticleDetail() {
       {/* Article Content */}
       <div className="article-content">
         <h1 className="article-title mb-3" style={{ 
+          backgroundColor: 'red',
+          padding: '20px',
           fontSize: '2rem',
           fontWeight: '700',
           lineHeight: '1.3',
