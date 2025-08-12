@@ -2,13 +2,42 @@ import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 import ArticleDetail from './ArticleDetail';
-// import CategoryPage from './CategoryPage'; // Import the new CategoryPage component
-// import SearchResults from './SearchResults'; // Import the new SearchResults component
 
 const CategoryPage = lazy(() => import('./CategoryPage'));
 const SearchResults = lazy(() => import('./SearchResults'));
 
 function Home({ articles }) {
+  // Function to get category color for styling
+  const getCategoryStyle = (category) => {
+    const categoryStyles = {
+      'AI/Cloud': {
+        backgroundColor: '#3b82f6',
+        color: 'white'
+      },
+      'Daily IT News(데아뉴)': {
+        backgroundColor: '#10b981',
+        color: 'white'
+      },
+      'Global Business': {
+        backgroundColor: '#8b5cf6',
+        color: 'white'
+      },
+      'News': {
+        backgroundColor: '#ef4444',
+        color: 'white'
+      },
+      'AI/Finance': {
+        backgroundColor: '#f59e0b',
+        color: 'white'
+      }
+    };
+
+    return categoryStyles[category] || {
+      backgroundColor: '#6b7280',
+      color: 'white'
+    };
+  };
+
   return (
     <div className="container mt-4">
       <h1 className="mb-4">DaITNew</h1>
@@ -19,6 +48,37 @@ function Home({ articles }) {
               <div className="card article-card">
                 <div className="article-square-img-container">
                   <img src={article.imageUrl} className="article-square-img" alt={article.title} />
+                </div>
+                
+                {/* Keyword Title Below Thumbnail - like dafanew style */}
+                <div className="card-body">
+                  {/* Short descriptive title */}
+                  <p className="card-text" style={{
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: '#2d3748',
+                    lineHeight: '1.4',
+                    marginBottom: '0.8rem',
+                    minHeight: '2.8rem', // Ensures consistent height
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {article.shortTitle || article.summary}
+                  </p>
+                  
+                  {/* Category badge */}
+                  <span 
+                    className="badge rounded-pill px-3 py-1"
+                    style={{
+                      ...getCategoryStyle(article.category),
+                      fontSize: '0.75rem',
+                      letterSpacing: '0.3px'
+                    }}
+                  >
+                    {article.category}
+                  </span>
                 </div>
               </div>
             </Link>
@@ -32,7 +92,7 @@ function Home({ articles }) {
 function App() {
   const [articles, setArticles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isNavCollapsed, setIsNavCollapsed] = useState(true); // State for navbar collapse
+  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,7 +110,7 @@ function App() {
     event.preventDefault();
     if (searchTerm.trim()) {
       navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
-      setIsNavCollapsed(true); // Collapse navbar after search
+      setIsNavCollapsed(true);
     }
   };
 
@@ -101,7 +161,7 @@ function App() {
             <span style={{ background: 'linear-gradient(to right, #ff00ff, #8a2be2)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 'bold' }}>Powered by Gemini</span>
           </p>
           <a href="https://www.linkedin.com/in/sangwon-choi-542759176/" target="_blank" rel="noopener noreferrer" style={{ color: '#ffffff', textDecoration: 'none' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-linkedin me-2" viewBox="0 0 16 16" style={{ color: '#ffffff' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-linkedin me-2" viewBox="0 0 16 16" style={{ color: '#ffffff' }}>
               <path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542V13.394h2.401zm-1.2-5.33c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 5.33V9.567c0-.288.01-.46.09-.622.186-.349.63-.752 1.33-.752.973 0 1.371.738 1.371 1.817v3.789h2.401V9.567c0-1.954-1.013-2.83-2.398-2.83-1.178 0-1.78.66-2.093 1.185h.016V6.169H6.56v7.225h2.401z"/>
             </svg>
             LinkedIn
