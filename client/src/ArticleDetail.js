@@ -65,8 +65,8 @@ function ArticleDetail() {
         <meta property="og:url" content={window.location.href} />
         <meta property="og:type" content="article" />
       </Helmet>
-      <h1>{article.title}</h1>
       <img src={article.imageUrl} className="img-fluid" alt={article.title} />
+      <h1>{article.title}</h1>
       <p>{article.summary}</p>
       <p><small className="text-muted">{article.category} - {article.date}</small></p>
       {/* In a real app, you'd have full article content here */}
