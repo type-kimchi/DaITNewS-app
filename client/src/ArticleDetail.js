@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import { Helmet } from '@vuer-ai/react-helmet-async';
 
 function ArticleDetail() {
   const { id } = useParams();

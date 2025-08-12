@@ -5,7 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
+import { HelmetProvider } from '@vuer-ai/react-helmet-async';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
