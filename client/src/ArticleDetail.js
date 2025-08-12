@@ -119,14 +119,26 @@ function ArticleDetail() {
           }}
         />
         
-        {/* Keyword Title below thumbnail - similar to dafanew style */}
-        <div className="keyword-title-container mt-3 mb-3">
+        {/* Short descriptive title below thumbnail - like dafanew style */}
+        <div className="keyword-title-container mt-3 mb-4">
+          <p style={{
+            fontSize: '1.1rem',
+            fontWeight: '600',
+            color: '#2d3748',
+            lineHeight: '1.4',
+            marginBottom: '0.5rem',
+            padding: '0 10px'
+          }}>
+            {article.shortTitle || article.summary}
+          </p>
+          
+          {/* Category badge */}
           <span 
             className="keyword-title badge rounded-pill px-3 py-2 fw-normal"
             style={{
               ...getCategoryStyle(article.category),
-              fontSize: '0.9rem',
-              letterSpacing: '0.5px'
+              fontSize: '0.85rem',
+              letterSpacing: '0.3px'
             }}
           >
             {article.category}
