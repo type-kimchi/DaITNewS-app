@@ -54,6 +54,9 @@ function ArticleDetail() {
     return <div>Loading article...</div>;
   }
 
+  console.log('Article data for rendering:', article);
+  console.log('Article title:', article.title);
+
   return (
     <div className="container mt-4">
       <Helmet>
