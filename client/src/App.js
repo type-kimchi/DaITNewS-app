@@ -5,6 +5,7 @@ import ArticleDetail from './ArticleDetail';
 
 const CategoryPage = lazy(() => import('./CategoryPage'));
 const SearchResults = lazy(() => import('./SearchResults'));
+const AdminPanel = lazy(() => import('./AdminPanel'));
 
 function Home({ articles }) {
   // Function to get category color for styling
@@ -148,6 +149,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home articles={articles} />} />
         <Route path="/article/:id" element={<ArticleDetail />} />
+        <Route path="/admin" element={<Suspense fallback={<div>Loading...</div>}><AdminPanel /></Suspense>} />
         <Route path="/ai-cloud" element={<Suspense fallback={<div>Loading...</div>}><CategoryPage articles={articles} category="AI/Cloud" /></Suspense>} />
         <Route path="/platform" element={<Suspense fallback={<div>Loading...</div>}><CategoryPage articles={articles} category="Daily IT News(데아뉴)" /></Suspense>} />
         <Route path="/global-business" element={<Suspense fallback={<div>Loading...</div>}><CategoryPage articles={articles} category="Global Business" /></Suspense>} />
