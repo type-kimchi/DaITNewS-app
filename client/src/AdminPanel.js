@@ -16,6 +16,8 @@ function AdminPanel() {
     date: new Date().toISOString().split('T')[0]
   });
   const [previewMode, setPreviewMode] = useState(false);
+  const [imageFile, setImageFile] = useState(null); // 추가: 이미지 파일 상태
+  const [imagePreview, setImagePreview] = useState(''); // 추가: 이미지 미리보기
 
   const categories = [
     'AI/Cloud',
@@ -25,10 +27,53 @@ function AdminPanel() {
     'AI/Finance'
   ];
 
-  // 간단한 인증 (실제 프로덕션에서는 더 안전한 방법 사용)
+  // 이미지 파일 선택 핸들러
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      
+      // 파일을 읽어서 미리보기 생성
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        setImagePreview(dataUrl);
+        setFormData({
+          ...formData,
+          imageUrl: dataUrl // 임시로 data URL 저장
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 이미지 업로드 함수 (실제 서버 구현 필요)
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return result.imageUrl; // 서버에서 반환한 이미지 URL
+      } else {
+        throw new Error('이미지 업로드 실패');
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      // 업로드 실패 시 data URL 그대로 사용 (임시방편)
+      return imagePreview;
+    }
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === 'admin123') { // 원하는 비밀번호로 변경하세요
+    if (password === 'admin123') {
       setIsAuthenticated(true);
       localStorage.setItem('adminAuth', 'true');
     } else {
@@ -37,12 +82,10 @@ function AdminPanel() {
   };
 
   useEffect(() => {
-    // 로그인 상태 확인
     if (localStorage.getItem('adminAuth') === 'true') {
       setIsAuthenticated(true);
     }
 
-    // 아티클 목록 가져오기
     if (isAuthenticated) {
       fetch('/api/articles')
         .then(res => res.json())
@@ -61,8 +104,16 @@ function AdminPanel() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    let finalImageUrl = formData.imageUrl;
+    
+    // 파일이 업로드된 경우 서버에 업로드
+    if (imageFile) {
+      finalImageUrl = await uploadImage(imageFile);
+    }
+    
     const articleData = {
       ...formData,
+      imageUrl: finalImageUrl,
       id: editingArticle ? editingArticle.id : Date.now()
     };
 
@@ -84,11 +135,9 @@ function AdminPanel() {
       if (response.ok) {
         alert(editingArticle ? '글이 수정되었습니다!' : '새 글이 작성되었습니다!');
         
-        // 목록 새로고침
         const updatedArticles = await fetch('/api/articles').then(res => res.json());
         setArticles(updatedArticles);
         
-        // 폼 초기화
         resetForm();
       } else {
         alert('저장 중 오류가 발생했습니다.');
@@ -109,6 +158,7 @@ function AdminPanel() {
       category: article.category,
       date: article.date
     });
+    setImagePreview(article.imageUrl); // 기존 이미지 미리보기 설정
     setShowEditor(true);
   };
 
@@ -144,6 +194,8 @@ function AdminPanel() {
     setEditingArticle(null);
     setShowEditor(false);
     setPreviewMode(false);
+    setImageFile(null); // 추가
+    setImagePreview(''); // 추가
   };
 
   const handleLogout = () => {
@@ -151,7 +203,6 @@ function AdminPanel() {
     setIsAuthenticated(false);
   };
 
-  // 로그인 화면
   if (!isAuthenticated) {
     return (
       <div className="container mt-5">
@@ -203,7 +254,6 @@ function AdminPanel() {
         </div>
       </div>
 
-      {/* 글 작성/수정 에디터 */}
       {showEditor && (
         <div className="card mb-4">
           <div className="card-header">
@@ -268,16 +318,52 @@ function AdminPanel() {
                   </div>
                   
                   <div className="col-md-4">
+                    {/* 이미지 업로드 섹션 수정 */}
                     <div className="mb-3">
-                      <label className="form-label">이미지 URL *</label>
-                      <input
-                        type="url"
-                        className="form-control"
-                        name="imageUrl"
-                        value={formData.imageUrl}
-                        onChange={handleInputChange}
-                        required
-                      />
+                      <label className="form-label">이미지</label>
+                      
+                      {/* 탭 형식으로 업로드/URL 선택 */}
+                      <div className="btn-group w-100 mb-2" role="group">
+                        <input type="radio" className="btn-check" name="imageMethod" id="upload" defaultChecked />
+                        <label className="btn btn-outline-primary" htmlFor="upload">파일 업로드</label>
+
+                        <input type="radio" className="btn-check" name="imageMethod" id="url" />
+                        <label className="btn btn-outline-primary" htmlFor="url">URL 입력</label>
+                      </div>
+                      
+                      {/* 파일 업로드 */}
+                      <div className="mb-2">
+                        <input
+                          type="file"
+                          className="form-control"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                        />
+                      </div>
+                      
+                      {/* URL 입력 (기존) */}
+                      <div className="mb-2">
+                        <input
+                          type="text"
+                          className="form-control"
+                          name="imageUrl"
+                          value={formData.imageUrl}
+                          onChange={handleInputChange}
+                          placeholder="또는 이미지 URL을 입력하거나 이미지를 복사해서 붙여넣기하세요"
+                        />
+                      </div>
+                      
+                      {/* 이미지 미리보기 */}
+                      {imagePreview && (
+                        <div className="mt-2">
+                          <img 
+                            src={imagePreview} 
+                            alt="미리보기" 
+                            className="img-fluid rounded"
+                            style={{maxHeight: '200px'}}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div className="mb-3">
@@ -319,11 +405,12 @@ function AdminPanel() {
                 </div>
               </form>
             ) : (
-              // 미리보기
               <div className="preview-content">
                 <h2>{formData.title}</h2>
                 <p className="text-muted">키워드: {formData.shortTitle}</p>
-                <img src={formData.imageUrl} className="img-fluid mb-3" alt="Preview" />
+                {(imagePreview || formData.imageUrl) && (
+                  <img src={imagePreview || formData.imageUrl} className="img-fluid mb-3" alt="Preview" />
+                )}
                 <div style={{ whiteSpace: 'pre-wrap' }}>
                   {formData.summary}
                 </div>
