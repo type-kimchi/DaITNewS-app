@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 function AdminPanel() {
@@ -16,8 +16,13 @@ function AdminPanel() {
     date: new Date().toISOString().split('T')[0]
   });
   const [previewMode, setPreviewMode] = useState(false);
-  const [imageFile, setImageFile] = useState(null); // 추가: 이미지 파일 상태
-  const [imagePreview, setImagePreview] = useState(''); // 추가: 이미지 미리보기
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [imageMethod, setImageMethod] = useState('upload'); // 이미지 입력 방식
+  const [pasteAreaActive, setPasteAreaActive] = useState(false); // 붙여넣기 영역 활성화 상태
+
+  // 붙여넣기 영역 참조
+  const pasteAreaRef = useRef(null);
 
   const categories = [
     'AI/Cloud',
@@ -27,27 +32,117 @@ function AdminPanel() {
     'AI/Finance'
   ];
 
+  // 클립보드 붙여넣기 이벤트 핸들러
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      // 이미지 파일인지 확인
+      if (item.type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        
+        if (file) {
+          setImageFile(file);
+          
+          // 파일을 읽어서 미리보기 생성
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            setImagePreview(dataUrl);
+            setFormData({
+              ...formData,
+              imageUrl: dataUrl
+            });
+          };
+          reader.readAsDataURL(file);
+          
+          setPasteAreaActive(false); // 붙여넣기 완료 후 비활성화
+          alert('이미지가 붙여넣기되었습니다!');
+        }
+        break;
+      }
+    }
+  };
+
+  // 드래그 앤 드롭 핸들러들
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setPasteAreaActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setPasteAreaActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setPasteAreaActive(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      
+      if (file.type.startsWith('image/')) {
+        setImageFile(file);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target.result;
+          setImagePreview(dataUrl);
+          setFormData({
+            ...formData,
+            imageUrl: dataUrl
+          });
+        };
+        reader.readAsDataURL(file);
+        
+        alert('이미지가 업로드되었습니다!');
+      } else {
+        alert('이미지 파일만 업로드할 수 있습니다.');
+      }
+    }
+  };
+
+  // 페이지 전체에 붙여넣기 이벤트 리스너 추가
+  useEffect(() => {
+    const handleGlobalPaste = (e) => {
+      // 에디터가 열려있고, 다른 input이 focus되어 있지 않을 때만 작동
+      if (showEditor && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        handlePaste(e);
+      }
+    };
+
+    document.addEventListener('paste', handleGlobalPaste);
+    return () => {
+      document.removeEventListener('paste', handleGlobalPaste);
+    };
+  }, [showEditor, formData]);
+
   // 이미지 파일 선택 핸들러
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setImageFile(file);
       
-      // 파일을 읽어서 미리보기 생성
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target.result;
         setImagePreview(dataUrl);
         setFormData({
           ...formData,
-          imageUrl: dataUrl // 임시로 data URL 저장
+          imageUrl: dataUrl
         });
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // 이미지 업로드 함수 (실제 서버 구현 필요)
+  // 이미지 업로드 함수
   const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -60,13 +155,12 @@ function AdminPanel() {
       
       if (response.ok) {
         const result = await response.json();
-        return result.imageUrl; // 서버에서 반환한 이미지 URL
+        return result.imageUrl;
       } else {
         throw new Error('이미지 업로드 실패');
       }
     } catch (error) {
       console.error('Image upload error:', error);
-      // 업로드 실패 시 data URL 그대로 사용 (임시방편)
       return imagePreview;
     }
   };
@@ -106,7 +200,6 @@ function AdminPanel() {
     
     let finalImageUrl = formData.imageUrl;
     
-    // 파일이 업로드된 경우 서버에 업로드
     if (imageFile) {
       finalImageUrl = await uploadImage(imageFile);
     }
@@ -158,7 +251,7 @@ function AdminPanel() {
       category: article.category,
       date: article.date
     });
-    setImagePreview(article.imageUrl); // 기존 이미지 미리보기 설정
+    setImagePreview(article.imageUrl);
     setShowEditor(true);
   };
 
@@ -194,8 +287,9 @@ function AdminPanel() {
     setEditingArticle(null);
     setShowEditor(false);
     setPreviewMode(false);
-    setImageFile(null); // 추가
-    setImagePreview(''); // 추가
+    setImageFile(null);
+    setImagePreview('');
+    setImageMethod('upload');
   };
 
   const handleLogout = () => {
@@ -318,50 +412,134 @@ function AdminPanel() {
                   </div>
                   
                   <div className="col-md-4">
-                    {/* 이미지 업로드 섹션 수정 */}
                     <div className="mb-3">
-                      <label className="form-label">이미지</label>
+                      <label className="form-label">이미지 추가</label>
                       
-                      {/* 탭 형식으로 업로드/URL 선택 */}
-                      <div className="btn-group w-100 mb-2" role="group">
-                        <input type="radio" className="btn-check" name="imageMethod" id="upload" defaultChecked />
-                        <label className="btn btn-outline-primary" htmlFor="upload">파일 업로드</label>
+                      {/* 이미지 입력 방식 선택 */}
+                      <div className="btn-group w-100 mb-3" role="group">
+                        <input 
+                          type="radio" 
+                          className="btn-check" 
+                          name="imageMethodRadio" 
+                          id="uploadMethod" 
+                          checked={imageMethod === 'upload'}
+                          onChange={() => setImageMethod('upload')}
+                        />
+                        <label className="btn btn-outline-primary" htmlFor="uploadMethod">파일 선택</label>
 
-                        <input type="radio" className="btn-check" name="imageMethod" id="url" />
-                        <label className="btn btn-outline-primary" htmlFor="url">URL 입력</label>
+                        <input 
+                          type="radio" 
+                          className="btn-check" 
+                          name="imageMethodRadio" 
+                          id="pasteMethod" 
+                          checked={imageMethod === 'paste'}
+                          onChange={() => setImageMethod('paste')}
+                        />
+                        <label className="btn btn-outline-success" htmlFor="pasteMethod">붙여넣기</label>
+
+                        <input 
+                          type="radio" 
+                          className="btn-check" 
+                          name="imageMethodRadio" 
+                          id="urlMethod" 
+                          checked={imageMethod === 'url'}
+                          onChange={() => setImageMethod('url')}
+                        />
+                        <label className="btn btn-outline-info" htmlFor="urlMethod">URL</label>
                       </div>
                       
                       {/* 파일 업로드 */}
-                      <div className="mb-2">
-                        <input
-                          type="file"
-                          className="form-control"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                        />
-                      </div>
+                      {imageMethod === 'upload' && (
+                        <div className="mb-2">
+                          <input
+                            type="file"
+                            className="form-control"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                          />
+                          <small className="form-text text-muted">
+                            JPG, PNG, GIF 등의 이미지 파일을 선택하세요
+                          </small>
+                        </div>
+                      )}
                       
-                      {/* URL 입력 (기존) */}
-                      <div className="mb-2">
-                        <input
-                          type="text"
-                          className="form-control"
-                          name="imageUrl"
-                          value={formData.imageUrl}
-                          onChange={handleInputChange}
-                          placeholder="또는 이미지 URL을 입력하거나 이미지를 복사해서 붙여넣기하세요"
-                        />
-                      </div>
+                      {/* 붙여넣기 영역 */}
+                      {imageMethod === 'paste' && (
+                        <div 
+                          ref={pasteAreaRef}
+                          className={`border rounded p-4 text-center ${pasteAreaActive ? 'border-success bg-light' : 'border-dashed'}`}
+                          style={{ 
+                            minHeight: '120px', 
+                            borderStyle: pasteAreaActive ? 'solid' : 'dashed',
+                            cursor: 'pointer'
+                          }}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          onClick={() => pasteAreaRef.current?.focus()}
+                          tabIndex={0}
+                        >
+                          <div className="text-muted">
+                            {pasteAreaActive ? (
+                              <>
+                                <i className="bi bi-download mb-2" style={{ fontSize: '2rem' }}></i>
+                                <br />
+                                <strong>이미지를 놓으세요!</strong>
+                              </>
+                            ) : (
+                              <>
+                                <i className="bi bi-clipboard mb-2" style={{ fontSize: '2rem' }}></i>
+                                <br />
+                                <strong>Ctrl+V로 이미지 붙여넣기</strong>
+                                <br />
+                                <small>또는 이미지를 드래그해서 놓으세요</small>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* URL 입력 */}
+                      {imageMethod === 'url' && (
+                        <div className="mb-2">
+                          <input
+                            type="url"
+                            className="form-control"
+                            name="imageUrl"
+                            value={formData.imageUrl}
+                            onChange={handleInputChange}
+                            placeholder="https://example.com/image.jpg"
+                          />
+                          <small className="form-text text-muted">
+                            이미지의 직접 링크를 입력하세요
+                          </small>
+                        </div>
+                      )}
                       
                       {/* 이미지 미리보기 */}
                       {imagePreview && (
-                        <div className="mt-2">
-                          <img 
-                            src={imagePreview} 
-                            alt="미리보기" 
-                            className="img-fluid rounded"
-                            style={{maxHeight: '200px'}}
-                          />
+                        <div className="mt-3">
+                          <label className="form-label">미리보기</label>
+                          <div className="position-relative">
+                            <img 
+                              src={imagePreview} 
+                              alt="미리보기" 
+                              className="img-fluid rounded border"
+                              style={{maxHeight: '200px', width: '100%', objectFit: 'cover'}}
+                            />
+                            <button 
+                              type="button"
+                              className="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
+                              onClick={() => {
+                                setImagePreview('');
+                                setImageFile(null);
+                                setFormData({...formData, imageUrl: ''});
+                              }}
+                              title="이미지 제거"
+                            >
+                              ×
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
