@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 function AdminPanel() {
@@ -33,7 +33,7 @@ function AdminPanel() {
   ];
 
   // 클립보드 붙여넣기 이벤트 핸들러
-  const handlePaste = (e) => {
+  const handlePaste = useCallback((e) => {
     const items = e.clipboardData?.items;
     if (!items) return;
 
@@ -53,10 +53,10 @@ function AdminPanel() {
           reader.onload = (e) => {
             const dataUrl = e.target.result;
             setImagePreview(dataUrl);
-            setFormData({
-              ...formData,
+            setFormData(prevFormData => ({
+              ...prevFormData,
               imageUrl: dataUrl
-            });
+            }));
           };
           reader.readAsDataURL(file);
           
@@ -66,20 +66,20 @@ function AdminPanel() {
         break;
       }
     }
-  };
+  }, []);
 
   // 드래그 앤 드롭 핸들러들
-  const handleDragOver = (e) => {
+  const handleDragOver = useCallback((e) => {
     e.preventDefault();
     setPasteAreaActive(true);
-  };
+  }, []);
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = useCallback((e) => {
     e.preventDefault();
     setPasteAreaActive(false);
-  };
+  }, []);
 
-  const handleDrop = (e) => {
+  const handleDrop = useCallback((e) => {
     e.preventDefault();
     setPasteAreaActive(false);
     
@@ -94,10 +94,10 @@ function AdminPanel() {
         reader.onload = (e) => {
           const dataUrl = e.target.result;
           setImagePreview(dataUrl);
-          setFormData({
-            ...formData,
+          setFormData(prevFormData => ({
+            ...prevFormData,
             imageUrl: dataUrl
-          });
+          }));
         };
         reader.readAsDataURL(file);
         
@@ -106,7 +106,7 @@ function AdminPanel() {
         alert('이미지 파일만 업로드할 수 있습니다.');
       }
     }
-  };
+  }, []);
 
   // 페이지 전체에 붙여넣기 이벤트 리스너 추가
   useEffect(() => {
@@ -121,7 +121,7 @@ function AdminPanel() {
     return () => {
       document.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [showEditor, formData]);
+  }, [showEditor, handlePaste]);
 
   // 이미지 파일 선택 핸들러
   const handleImageChange = (e) => {
