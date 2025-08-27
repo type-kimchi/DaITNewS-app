@@ -236,7 +236,7 @@ function AdminPanel() {
         finalImageUrl = uploadedUrl;
         console.log('업로드된 URL:', uploadedUrl);
       } else {
-        const proceed = confirm('이미지 업로드에 실패했습니다. 이미지 없이 저장하시겠습니까?');
+        const proceed = window.confirm('이미지 업로드에 실패했습니다. 이미지 없이 저장하시겠습니까?');
         if (!proceed) return;
         finalImageUrl = '';
       }

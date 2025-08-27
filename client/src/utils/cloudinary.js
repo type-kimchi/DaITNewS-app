@@ -23,4 +23,78 @@ const resizeImage = (file, maxWidth = 1200, quality = 0.8) => {
 // Cloudinary에 이미지 업로드하는 함수
 export const uploadToCloudinary = async (file) => {
   try {
-    // ✅ React
+    // ✅ React 앱용 환경변수로 수정
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+    
+    // 환경변수 체크
+    if (!cloudName || !uploadPreset) {
+      throw new Error('Cloudinary 환경변수가 설정되지 않았습니다.');
+    }
+    
+    // 파일 크기 체크 (5MB 제한)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    let fileToUpload = file;
+    
+    if (file.size > maxSize) {
+      console.log('파일이 너무 큽니다. 리사이즈 중...');
+      fileToUpload = await resizeImage(file, 1200, 0.7);
+    }
+    
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('upload_preset', uploadPreset);
+    formData.append('folder', 'blog');
+    
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error('Cloudinary 업로드 실패');
+    }
+    
+    const data = await response.json();
+    
+    return {
+      success: true,
+      url: data.secure_url,
+      publicId: data.public_id,
+    };
+  } catch (error) {
+    console.error('Cloudinary upload error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// 이미지 URL 변환 함수 (선택사항)
+export const getOptimizedImageUrl = (originalUrl, options = {}) => {
+  const { width, height, quality = 'auto', format = 'auto' } = options;
+  
+  if (!originalUrl || !originalUrl.includes('cloudinary.com')) {
+    return originalUrl;
+  }
+  
+  let transformations = [];
+  
+  if (width) transformations.push(`w_${width}`);
+  if (height) transformations.push(`h_${height}`);
+  if (quality) transformations.push(`q_${quality}`);
+  if (format) transformations.push(`f_${format}`);
+  
+  if (transformations.length === 0) return originalUrl;
+  
+  const transformString = transformations.join(',');
+  return originalUrl.replace('/upload/', `/upload/${transformString}/`);
+};
+
+// 사용 예시:
+// const thumbnailUrl = getOptimizedImageUrl(originalUrl, { width: 300, height: 200 });
+// const mobileUrl = getOptimizedImageUrl(originalUrl, { width: 800, quality: 'auto' });
