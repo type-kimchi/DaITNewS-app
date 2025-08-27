@@ -21,7 +21,7 @@ function AdminPanel() {
   const [imagePreview, setImagePreview] = useState('');
   const [imageMethod, setImageMethod] = useState('upload');
   const [pasteAreaActive, setPasteAreaActive] = useState(false);
-  const [isUploading, setIsUploading] = useState(false); // 업로드 상태
+  const [isUploading, setIsUploading] = useState(false);
 
   const pasteAreaRef = useRef(null);
 
@@ -32,6 +32,50 @@ function AdminPanel() {
     'News',
     'AI/Finance'
   ];
+
+  // ✅ 누락된 handleLogin 함수 추가
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === 'admin123') { // 실제 환경에서는 더 안전한 인증 방식 사용
+      localStorage.setItem('adminAuth', 'true');
+      setIsAuthenticated(true);
+      setPassword('');
+    } else {
+      alert('비밀번호가 틀렸습니다.');
+    }
+  };
+
+  // ✅ 데이터 로딩 개선
+  useEffect(() => {
+    // 인증 상태 확인
+    const authStatus = localStorage.getItem('adminAuth');
+    if (authStatus === 'true') {
+      setIsAuthenticated(true);
+    }
+
+    // 글 목록 로드 (인증 여부와 상관없이 항상 로드)
+    try {
+      const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
+      console.log('로드된 글 목록:', savedArticles); // 디버깅용
+      setArticles(savedArticles);
+    } catch (error) {
+      console.error('글 목록 로드 실패:', error);
+      setArticles([]);
+    }
+  }, []);
+
+  // ✅ 인증 상태 변경 시 글 목록 다시 로드
+  useEffect(() => {
+    if (isAuthenticated) {
+      try {
+        const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
+        console.log('인증 후 글 목록 로드:', savedArticles);
+        setArticles(savedArticles);
+      } catch (error) {
+        console.error('인증 후 글 목록 로드 실패:', error);
+      }
+    }
+  }, [isAuthenticated]);
 
   // 클립보드 붙여넣기 이벤트 핸들러
   const handlePaste = useCallback((e) => {
@@ -139,13 +183,21 @@ function AdminPanel() {
     }
   };
 
-  // Cloudinary 업로드 함수
+  // ✅ Cloudinary 업로드 함수 개선
   const uploadImageToCloudinary = async (file) => {
     if (!file) return null;
+    
+    // 환경변수 체크
+    if (!process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || !process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET) {
+      console.error('Cloudinary 환경변수가 설정되지 않았습니다.');
+      alert('Cloudinary 설정이 누락되었습니다. 관리자에게 문의하세요.');
+      return null;
+    }
     
     setIsUploading(true);
     
     try {
+      console.log('Cloudinary 업로드 시작...');
       const result = await uploadToCloudinary(file);
       
       if (result.success) {
@@ -157,23 +209,11 @@ function AdminPanel() {
     } catch (error) {
       console.error('Cloudinary 업로드 실패:', error);
       alert('이미지 업로드에 실패했습니다: ' + error.message);
-      return null; // imagePreview 대신 null 반환
+      return null;
     } finally {
       setIsUploading(false);
     }
   };
-
-  useEffect(() => {
-    if (localStorage.getItem('adminAuth') === 'true') {
-      setIsAuthenticated(true);
-    }
-
-    if (isAuthenticated) {
-      // 로컬스토리지에서 글 목록 불러오기 (임시)
-      const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
-      setArticles(savedArticles);
-    }
-  }, [isAuthenticated]);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -181,17 +221,8 @@ function AdminPanel() {
       [e.target.name]: e.target.value
     });
   };
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (password === '1Q2w3e4r!') { // 실제 비밀번호로 변경
-      localStorage.setItem('adminAuth', 'true');
-      setIsAuthenticated(true);
-    } else {
-      alert('비밀번호가 틀렸습니다.');
-    }
-    setPassword('');
-  };  
 
+  // ✅ handleSubmit 개선
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -199,19 +230,26 @@ function AdminPanel() {
     
     // 파일이 있으면 Cloudinary에 업로드
     if (imageFile) {
+      console.log('이미지 파일 업로드 중...', imageFile.name);
       const uploadedUrl = await uploadImageToCloudinary(imageFile);
       if (uploadedUrl) {
         finalImageUrl = uploadedUrl;
+        console.log('업로드된 URL:', uploadedUrl);
+      } else {
+        const proceed = confirm('이미지 업로드에 실패했습니다. 이미지 없이 저장하시겠습니까?');
+        if (!proceed) return;
+        finalImageUrl = '';
       }
     }
     
     const articleData = {
       ...formData,
       imageUrl: finalImageUrl,
-      id: editingArticle ? editingArticle.id : Date.now()
+      id: editingArticle ? editingArticle.id : Date.now(),
+      createdAt: editingArticle ? editingArticle.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
-    // 현재는 로컬스토리지에 임시 저장 (나중에 Firebase로 교체)
     try {
       const existingArticles = JSON.parse(localStorage.getItem('articles') || '[]');
       
@@ -221,17 +259,20 @@ function AdminPanel() {
           existingArticles[index] = articleData;
         }
       } else {
-        existingArticles.push(articleData);
+        existingArticles.unshift(articleData); // 최신 글을 맨 위에
       }
       
       localStorage.setItem('articles', JSON.stringify(existingArticles));
-      setArticles(existingArticles);
+      setArticles([...existingArticles]); // 상태 업데이트
+      
+      console.log('저장된 글:', articleData);
+      console.log('전체 글 목록:', existingArticles);
       
       alert(editingArticle ? '글이 수정되었습니다!' : '새 글이 작성되었습니다!');
       resetForm();
     } catch (error) {
-      console.error('Error:', error);
-      alert('저장 중 오류가 발생했습니다.');
+      console.error('저장 오류:', error);
+      alert('저장 중 오류가 발생했습니다: ' + error.message);
     }
   };
 
@@ -256,10 +297,11 @@ function AdminPanel() {
         const filteredArticles = existingArticles.filter(article => article.id !== articleId);
         
         localStorage.setItem('articles', JSON.stringify(filteredArticles));
-        setArticles(filteredArticles);
+        setArticles([...filteredArticles]); // 상태 업데이트
         
         alert('글이 삭제되었습니다.');
       } catch (error) {
+        console.error('삭제 오류:', error);
         alert('삭제 중 오류가 발생했습니다.');
       }
     }
@@ -287,6 +329,18 @@ function AdminPanel() {
     setIsAuthenticated(false);
   };
 
+  // ✅ 디버깅 정보 표시 (개발 중에만 사용)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('현재 상태:', {
+      isAuthenticated,
+      articlesCount: articles.length,
+      cloudinaryConfig: {
+        cloudName: process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ? '✅' : '❌',
+        uploadPreset: process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET ? '✅' : '❌'
+      }
+    });
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="container mt-5">
@@ -303,8 +357,10 @@ function AdminPanel() {
                       className="form-control"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      placeholder="admin123"
                       required
                     />
+                    <small className="form-text text-muted">개발용: admin123</small>
                   </div>
                   <button type="submit" className="btn btn-primary w-100">
                     로그인
@@ -337,6 +393,21 @@ function AdminPanel() {
           </button>
         </div>
       </div>
+
+      {/* ✅ 디버깅 정보 (개발 환경에서만 표시) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="alert alert-info mb-4">
+          <strong>디버깅 정보:</strong>
+          <br />
+          글 개수: {articles.length}개
+          <br />
+          Cloudinary 설정: {
+            process.env.REACT_APP_CLOUDINARY_CLOUD_NAME && process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET 
+              ? '✅ 완료' 
+              : '❌ 미설정'
+          }
+        </div>
+      )}
 
       {showEditor && (
         <div className="card mb-4">
@@ -601,53 +672,65 @@ function AdminPanel() {
           <h3>글 목록 ({articles.length}개)</h3>
         </div>
         <div className="card-body">
-          <div className="table-responsive">
-            <table className="table table-hover">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>제목</th>
-                  <th>키워드</th>
-                  <th>카테고리</th>
-                  <th>날짜</th>
-                  <th>작업</th>
-                </tr>
-              </thead>
-              <tbody>
-                {articles.map(article => (
-                  <tr key={article.id}>
-                    <td>{article.id}</td>
-                    <td>
-                      <Link to={`/article/${article.id}`} target="_blank">
-                        {article.title}
-                      </Link>
-                    </td>
-                    <td className="text-muted small">
-                      {article.shortTitle || '없음'}
-                    </td>
-                    <td>
-                      <span className="badge bg-primary">{article.category}</span>
-                    </td>
-                    <td>{article.date}</td>
-                    <td>
-                      <button 
-                        className="btn btn-sm btn-outline-primary me-1"
-                        onClick={() => handleEdit(article)}
-                      >
-                        수정
-                      </button>
-                      <button 
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => handleDelete(article.id)}
-                      >
-                        삭제
-                      </button>
-                    </td>
+          {articles.length === 0 ? (
+            <div className="text-center py-5">
+              <p className="text-muted">아직 작성된 글이 없습니다.</p>
+              <button 
+                className="btn btn-primary"
+                onClick={() => setShowEditor(true)}
+              >
+                첫 글 작성하기
+              </button>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>제목</th>
+                    <th>키워드</th>
+                    <th>카테고리</th>
+                    <th>날짜</th>
+                    <th>작업</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {articles.map(article => (
+                    <tr key={article.id}>
+                      <td>{article.id}</td>
+                      <td>
+                        <Link to={`/article/${article.id}`} target="_blank">
+                          {article.title}
+                        </Link>
+                      </td>
+                      <td className="text-muted small">
+                        {article.shortTitle || '없음'}
+                      </td>
+                      <td>
+                        <span className="badge bg-primary">{article.category}</span>
+                      </td>
+                      <td>{article.date}</td>
+                      <td>
+                        <button 
+                          className="btn btn-sm btn-outline-primary me-1"
+                          onClick={() => handleEdit(article)}
+                        >
+                          수정
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDelete(article.id)}
+                        >
+                          삭제
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
