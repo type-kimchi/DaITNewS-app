@@ -1,7 +1,7 @@
 // utils/cloudinary.js
 
 // 이미지 리사이즈 함수
-const resizeImage = (file, maxWidth = 1200, quality = 0.8) => {
+const resizeImage = (file, maxWidth = 800, quality = 0.6) => {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -35,11 +35,11 @@ export const uploadToCloudinary = async (file) => {
     
     const formData = new FormData();
     formData.append('file', fileToUpload);
-    formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+    formData.append('upload_preset', process.env.REACT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
     formData.append('folder', 'blog');
     
     const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${process.env.REACT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
       {
         method: 'POST',
         body: formData,

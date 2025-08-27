@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { uploadToCloudinary } from '../utils/cloudinary'; // 위에서 만든 함수
+import { uploadToCloudinary } from './utils/cloudinary'; // 위에서 만든 함수
 
 function AdminPanel() {
   const [articles, setArticles] = useState([]);
@@ -152,25 +152,14 @@ function AdminPanel() {
         console.log('Cloudinary 업로드 성공:', result.url);
         return result.url;
       } else {
-        throw new Error(result.error);
+        throw new Error(result.error || '업로드에 실패했습니다');
       }
     } catch (error) {
       console.error('Cloudinary 업로드 실패:', error);
       alert('이미지 업로드에 실패했습니다: ' + error.message);
-      // 실패해도 기본 미리보기 URL 사용
-      return imagePreview;
+      return null; // imagePreview 대신 null 반환
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (password === 'admin123') {
-      setIsAuthenticated(true);
-      localStorage.setItem('adminAuth', 'true');
-    } else {
-      alert('잘못된 비밀번호입니다.');
     }
   };
 
@@ -192,6 +181,16 @@ function AdminPanel() {
       [e.target.name]: e.target.value
     });
   };
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === '1Q2w3e4r!') { // 실제 비밀번호로 변경
+      localStorage.setItem('adminAuth', 'true');
+      setIsAuthenticated(true);
+    } else {
+      alert('비밀번호가 틀렸습니다.');
+    }
+    setPassword('');
+  };  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
