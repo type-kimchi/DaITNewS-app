@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { uploadToCloudinary } from '../utils/cloudinary'; // 위에서 만든 함수
 
 function AdminPanel() {
   const [articles, setArticles] = useState([]);
@@ -18,10 +19,10 @@ function AdminPanel() {
   const [previewMode, setPreviewMode] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
-  const [imageMethod, setImageMethod] = useState('upload'); // 이미지 입력 방식
-  const [pasteAreaActive, setPasteAreaActive] = useState(false); // 붙여넣기 영역 활성화 상태
+  const [imageMethod, setImageMethod] = useState('upload');
+  const [pasteAreaActive, setPasteAreaActive] = useState(false);
+  const [isUploading, setIsUploading] = useState(false); // 업로드 상태
 
-  // 붙여넣기 영역 참조
   const pasteAreaRef = useRef(null);
 
   const categories = [
@@ -40,7 +41,6 @@ function AdminPanel() {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       
-      // 이미지 파일인지 확인
       if (item.type.indexOf('image') !== -1) {
         e.preventDefault();
         const file = item.getAsFile();
@@ -48,7 +48,6 @@ function AdminPanel() {
         if (file) {
           setImageFile(file);
           
-          // 파일을 읽어서 미리보기 생성
           const reader = new FileReader();
           reader.onload = (e) => {
             const dataUrl = e.target.result;
@@ -60,8 +59,8 @@ function AdminPanel() {
           };
           reader.readAsDataURL(file);
           
-          setPasteAreaActive(false); // 붙여넣기 완료 후 비활성화
-          alert('이미지가 붙여넣기되었습니다!');
+          setPasteAreaActive(false);
+          alert('이미지가 붙여넣기되었습니다! 저장 시 Cloudinary에 업로드됩니다.');
         }
         break;
       }
@@ -101,17 +100,15 @@ function AdminPanel() {
         };
         reader.readAsDataURL(file);
         
-        alert('이미지가 업로드되었습니다!');
+        alert('이미지가 업로드되었습니다! 저장 시 Cloudinary에 업로드됩니다.');
       } else {
         alert('이미지 파일만 업로드할 수 있습니다.');
       }
     }
   }, []);
 
-  // 페이지 전체에 붙여넣기 이벤트 리스너 추가
   useEffect(() => {
     const handleGlobalPaste = (e) => {
-      // 에디터가 열려있고, 다른 input이 focus되어 있지 않을 때만 작동
       if (showEditor && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
         handlePaste(e);
       }
@@ -133,35 +130,36 @@ function AdminPanel() {
       reader.onload = (e) => {
         const dataUrl = e.target.result;
         setImagePreview(dataUrl);
-        setFormData({
-          ...formData,
+        setFormData(prevFormData => ({
+          ...prevFormData,
           imageUrl: dataUrl
-        });
+        }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // 이미지 업로드 함수
-  const uploadImage = async (file) => {
-    const formData = new FormData();
-    formData.append('image', file);
+  // Cloudinary 업로드 함수
+  const uploadImageToCloudinary = async (file) => {
+    if (!file) return null;
+    
+    setIsUploading(true);
     
     try {
-      const response = await fetch('/api/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
+      const result = await uploadToCloudinary(file);
       
-      if (response.ok) {
-        const result = await response.json();
-        return result.imageUrl;
+      if (result.success) {
+        console.log('Cloudinary 업로드 성공:', result.url);
+        return result.url;
       } else {
-        throw new Error('이미지 업로드 실패');
+        throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Image upload error:', error);
-      return imagePreview;
+      console.error('Cloudinary 업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다: ' + error.message);
+      return null;
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -200,8 +198,12 @@ function AdminPanel() {
     
     let finalImageUrl = formData.imageUrl;
     
+    // 파일이 있으면 Cloudinary에 업로드
     if (imageFile) {
-      finalImageUrl = await uploadImage(imageFile);
+      const uploadedUrl = await uploadImageToCloudinary(imageFile);
+      if (uploadedUrl) {
+        finalImageUrl = uploadedUrl;
+      }
     }
     
     const articleData = {
@@ -385,7 +387,7 @@ function AdminPanel() {
                     </div>
                     
                     <div className="mb-3">
-                      <label className="form-label">키워드 제목 (썸네일 하단에 표시) *</label>
+                      <label className="form-label">키워드 제목 *</label>
                       <input
                         type="text"
                         className="form-control"
@@ -413,9 +415,11 @@ function AdminPanel() {
                   
                   <div className="col-md-4">
                     <div className="mb-3">
-                      <label className="form-label">이미지 추가</label>
+                      <label className="form-label">
+                        이미지 추가
+                        {isUploading && <span className="text-primary ms-2">업로드 중...</span>}
+                      </label>
                       
-                      {/* 이미지 입력 방식 선택 */}
                       <div className="btn-group w-100 mb-3" role="group">
                         <input 
                           type="radio" 
@@ -448,7 +452,6 @@ function AdminPanel() {
                         <label className="btn btn-outline-info" htmlFor="urlMethod">URL</label>
                       </div>
                       
-                      {/* 파일 업로드 */}
                       {imageMethod === 'upload' && (
                         <div className="mb-2">
                           <input
@@ -457,13 +460,12 @@ function AdminPanel() {
                             accept="image/*"
                             onChange={handleImageChange}
                           />
-                          <small className="form-text text-muted">
-                            JPG, PNG, GIF 등의 이미지 파일을 선택하세요
+                          <small className="form-text text-success">
+                            💡 선택한 이미지는 Cloudinary에 자동 업로드됩니다
                           </small>
                         </div>
                       )}
                       
-                      {/* 붙여넣기 영역 */}
                       {imageMethod === 'paste' && (
                         <div 
                           ref={pasteAreaRef}
@@ -492,14 +494,13 @@ function AdminPanel() {
                                 <br />
                                 <strong>Ctrl+V로 이미지 붙여넣기</strong>
                                 <br />
-                                <small>또는 이미지를 드래그해서 놓으세요</small>
+                                <small>Cloudinary에 자동 업로드됩니다 ☁️</small>
                               </>
                             )}
                           </div>
                         </div>
                       )}
                       
-                      {/* URL 입력 */}
                       {imageMethod === 'url' && (
                         <div className="mb-2">
                           <input
@@ -511,12 +512,11 @@ function AdminPanel() {
                             placeholder="https://example.com/image.jpg"
                           />
                           <small className="form-text text-muted">
-                            이미지의 직접 링크를 입력하세요
+                            외부 이미지 URL을 직접 입력
                           </small>
                         </div>
                       )}
                       
-                      {/* 이미지 미리보기 */}
                       {imagePreview && (
                         <div className="mt-3">
                           <label className="form-label">미리보기</label>
@@ -540,6 +540,11 @@ function AdminPanel() {
                               ×
                             </button>
                           </div>
+                          {imageFile && (
+                            <small className="text-success d-block mt-1">
+                              ☁️ 저장 시 Cloudinary에 업로드됩니다
+                            </small>
+                          )}
                         </div>
                       )}
                     </div>
@@ -574,8 +579,12 @@ function AdminPanel() {
                 </div>
 
                 <div className="mt-3">
-                  <button type="submit" className="btn btn-primary me-2">
-                    {editingArticle ? '수정하기' : '저장하기'}
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary me-2"
+                    disabled={isUploading}
+                  >
+                    {isUploading ? '업로드 중...' : (editingArticle ? '수정하기' : '저장하기')}
                   </button>
                   <button type="button" className="btn btn-secondary" onClick={resetForm}>
                     취소
@@ -599,7 +608,6 @@ function AdminPanel() {
         </div>
       )}
 
-      {/* 아티클 목록 */}
       <div className="card">
         <div className="card-header">
           <h3>글 목록 ({articles.length}개)</h3>
