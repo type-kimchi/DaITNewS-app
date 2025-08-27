@@ -157,7 +157,8 @@ function AdminPanel() {
     } catch (error) {
       console.error('Cloudinary 업로드 실패:', error);
       alert('이미지 업로드에 실패했습니다: ' + error.message);
-      return null;
+      // 실패해도 기본 미리보기 URL 사용
+      return imagePreview;
     } finally {
       setIsUploading(false);
     }
@@ -179,10 +180,9 @@ function AdminPanel() {
     }
 
     if (isAuthenticated) {
-      fetch('/api/articles')
-        .then(res => res.json())
-        .then(data => setArticles(data))
-        .catch(err => console.error(err));
+      // 로컬스토리지에서 글 목록 불러오기 (임시)
+      const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
+      setArticles(savedArticles);
     }
   }, [isAuthenticated]);
 
@@ -212,31 +212,24 @@ function AdminPanel() {
       id: editingArticle ? editingArticle.id : Date.now()
     };
 
+    // 현재는 로컬스토리지에 임시 저장 (나중에 Firebase로 교체)
     try {
-      const url = editingArticle 
-        ? `/api/articles/${editingArticle.id}` 
-        : '/api/articles';
+      const existingArticles = JSON.parse(localStorage.getItem('articles') || '[]');
       
-      const method = editingArticle ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(articleData),
-      });
-
-      if (response.ok) {
-        alert(editingArticle ? '글이 수정되었습니다!' : '새 글이 작성되었습니다!');
-        
-        const updatedArticles = await fetch('/api/articles').then(res => res.json());
-        setArticles(updatedArticles);
-        
-        resetForm();
+      if (editingArticle) {
+        const index = existingArticles.findIndex(a => a.id === editingArticle.id);
+        if (index !== -1) {
+          existingArticles[index] = articleData;
+        }
       } else {
-        alert('저장 중 오류가 발생했습니다.');
+        existingArticles.push(articleData);
       }
+      
+      localStorage.setItem('articles', JSON.stringify(existingArticles));
+      setArticles(existingArticles);
+      
+      alert(editingArticle ? '글이 수정되었습니다!' : '새 글이 작성되었습니다!');
+      resetForm();
     } catch (error) {
       console.error('Error:', error);
       alert('저장 중 오류가 발생했습니다.');
@@ -260,17 +253,13 @@ function AdminPanel() {
   const handleDelete = async (articleId) => {
     if (window.confirm('정말로 이 글을 삭제하시겠습니까?')) {
       try {
-        const response = await fetch(`/api/articles/${articleId}`, {
-          method: 'DELETE',
-        });
-
-        if (response.ok) {
-          alert('글이 삭제되었습니다.');
-          const updatedArticles = await fetch('/api/articles').then(res => res.json());
-          setArticles(updatedArticles);
-        } else {
-          alert('삭제 중 오류가 발생했습니다.');
-        }
+        const existingArticles = JSON.parse(localStorage.getItem('articles') || '[]');
+        const filteredArticles = existingArticles.filter(article => article.id !== articleId);
+        
+        localStorage.setItem('articles', JSON.stringify(filteredArticles));
+        setArticles(filteredArticles);
+        
+        alert('글이 삭제되었습니다.');
       } catch (error) {
         alert('삭제 중 오류가 발생했습니다.');
       }
