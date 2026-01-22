@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { uploadToCloudinary } from './utils/cloudinary'; // 위에서 만든 함수
+import { uploadToCloudinary } from './utils/cloudinary';
+import { fetchArticles, createArticle, updateArticle, deleteArticle } from './utils/api'; // API 함수 불러오기
 
 function AdminPanel() {
   const [articles, setArticles] = useState([]);
@@ -13,6 +14,7 @@ function AdminPanel() {
     shortTitle: '',
     imageUrl: '',
     summary: '',
+    content: '', // content 필드 추가
     category: 'Daily IT News(데아뉴)',
     date: new Date().toISOString().split('T')[0]
   });
@@ -22,6 +24,7 @@ function AdminPanel() {
   const [imageMethod, setImageMethod] = useState('upload');
   const [pasteAreaActive, setPasteAreaActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(false); // 로딩 상태 추가
 
   const pasteAreaRef = useRef(null);
 
@@ -33,49 +36,39 @@ function AdminPanel() {
     'AI/Finance'
   ];
 
-  // ✅ 누락된 handleLogin 함수 추가
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === 'admin123') { // 실제 환경에서는 더 안전한 인증 방식 사용
+    if (password === 'admin123') { 
       localStorage.setItem('adminAuth', 'true');
       setIsAuthenticated(true);
       setPassword('');
+      fetchArticlesData(); // 로그인 성공 시 글 목록 로드
     } else {
       alert('비밀번호가 틀렸습니다.');
     }
   };
 
-  // ✅ 데이터 로딩 개선
-  useEffect(() => {
-    // 인증 상태 확인
-    const authStatus = localStorage.getItem('adminAuth');
-    if (authStatus === 'true') {
-      setIsAuthenticated(true);
-    }
-
-    // 글 목록 로드 (인증 여부와 상관없이 항상 로드)
+  const fetchArticlesData = useCallback(async () => {
+    setIsLoadingArticles(true);
     try {
-      const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
-      console.log('로드된 글 목록:', savedArticles); // 디버깅용
-      setArticles(savedArticles);
+      const fetchedArticles = await fetchArticles();
+      setArticles(fetchedArticles);
+      console.log('로드된 글 목록 (API):', fetchedArticles);
     } catch (error) {
-      console.error('글 목록 로드 실패:', error);
-      setArticles([]);
+      console.error('글 목록 로드 실패 (API):', error);
+      alert('글 목록을 불러오는 데 실패했습니다.');
+    } finally {
+      setIsLoadingArticles(false);
     }
   }, []);
 
-  // ✅ 인증 상태 변경 시 글 목록 다시 로드
   useEffect(() => {
-    if (isAuthenticated) {
-      try {
-        const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
-        console.log('인증 후 글 목록 로드:', savedArticles);
-        setArticles(savedArticles);
-      } catch (error) {
-        console.error('인증 후 글 목록 로드 실패:', error);
-      }
+    const authStatus = localStorage.getItem('adminAuth');
+    if (authStatus === 'true') {
+      setIsAuthenticated(true);
+      fetchArticlesData(); // 인증되어 있으면 글 목록 로드
     }
-  }, [isAuthenticated]);
+  }, [fetchArticlesData]);
 
   // 클립보드 붙여넣기 이벤트 핸들러
   const handlePaste = useCallback((e) => {
@@ -242,31 +235,24 @@ function AdminPanel() {
       }
     }
     
-    const articleData = {
-      ...formData,
-      imageUrl: finalImageUrl,
-      id: editingArticle ? editingArticle.id : Date.now(),
-      createdAt: editingArticle ? editingArticle.createdAt : new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
     try {
-      const existingArticles = JSON.parse(localStorage.getItem('articles') || '[]');
-      
+      const articlePayload = {
+        title: formData.title,
+        shortTitle: formData.shortTitle,
+        imageUrl: finalImageUrl,
+        summary: formData.summary,
+        category: formData.category,
+        date: formData.date,
+        content: formData.content
+      };
+
       if (editingArticle) {
-        const index = existingArticles.findIndex(a => a.id === editingArticle.id);
-        if (index !== -1) {
-          existingArticles[index] = articleData;
-        }
+        const updated = await updateArticle(editingArticle.id, articlePayload);
+        setArticles(prev => prev.map(a => (a.id === updated.id ? updated : a)));
       } else {
-        existingArticles.unshift(articleData); // 최신 글을 맨 위에
+        const created = await createArticle(articlePayload);
+        setArticles(prev => [created, ...prev]); // 최신 글을 맨 위에
       }
-      
-      localStorage.setItem('articles', JSON.stringify(existingArticles));
-      setArticles([...existingArticles]); // 상태 업데이트
-      
-      console.log('저장된 글:', articleData);
-      console.log('전체 글 목록:', existingArticles);
       
       alert(editingArticle ? '글이 수정되었습니다!' : '새 글이 작성되었습니다!');
       resetForm();
@@ -283,21 +269,20 @@ function AdminPanel() {
       shortTitle: article.shortTitle || '',
       imageUrl: article.imageUrl,
       summary: article.summary,
+      content: article.content || '',
       category: article.category,
       date: article.date
     });
     setImagePreview(article.imageUrl);
+    setImageFile(null);
     setShowEditor(true);
   };
 
   const handleDelete = async (articleId) => {
     if (window.confirm('정말로 이 글을 삭제하시겠습니까?')) {
       try {
-        const existingArticles = JSON.parse(localStorage.getItem('articles') || '[]');
-        const filteredArticles = existingArticles.filter(article => article.id !== articleId);
-        
-        localStorage.setItem('articles', JSON.stringify(filteredArticles));
-        setArticles([...filteredArticles]); // 상태 업데이트
+        await deleteArticle(articleId);
+        setArticles(prev => prev.filter(article => article.id !== articleId));
         
         alert('글이 삭제되었습니다.');
       } catch (error) {
@@ -313,6 +298,7 @@ function AdminPanel() {
       shortTitle: '',
       imageUrl: '',
       summary: '',
+      content: '',
       category: 'Daily IT News(데아뉴)',
       date: new Date().toISOString().split('T')[0]
     });
