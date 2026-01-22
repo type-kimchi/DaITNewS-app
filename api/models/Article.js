@@ -16,6 +16,10 @@ const articleSchema = new mongoose.Schema({
     required: false, // image may not be required for all articles
     trim: true,
   },
+  images: {
+    type: [String],
+    default: [],
+  },
   summary: {
     type: String,
     required: true,

@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 
 function CategoryPage({ articles, category }) {
   const filteredArticles = articles.filter(article => article.category === category);
+  const getCoverUrl = (article) => {
+    if (article.images && article.images.length > 0) return article.images[0];
+    return article.imageUrl || '';
+  };
 
   return (
     <div className="container mt-4">
@@ -14,7 +18,11 @@ function CategoryPage({ articles, category }) {
               <Link to={`/article/${article.id}`} className="text-decoration-none text-dark">
                 <div className="card article-card">
                   <div className="article-square-img-container">
-                    <img src={article.imageUrl} className="article-square-img" alt={article.title} />
+                    {getCoverUrl(article) ? (
+                      <img src={getCoverUrl(article)} className="article-square-img" alt={article.title} />
+                    ) : (
+                      <div className="article-square-img placeholder-img">No Image</div>
+                    )}
                   </div>
                 </div>
               </Link>

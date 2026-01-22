@@ -68,7 +68,15 @@ function ArticleDetail() {
         <meta property="og:type" content="article" />
       </Helmet>
       
-      <img src={article.imageUrl} className="img-fluid" alt={article.title} />
+      {(article.images && article.images.length > 0) ? (
+        <div className="article-gallery mb-3">
+          {article.images.map((url, index) => (
+            <img key={url + index} src={url} className="img-fluid mb-2" alt={`${article.title} ${index + 1}`} />
+          ))}
+        </div>
+      ) : (
+        article.imageUrl && <img src={article.imageUrl} className="img-fluid mb-3" alt={article.title} />
+      )}
       <h1>{article.title}</h1>
       <p>{article.summary}</p>
       <p><small className="text-muted">{article.category} - {article.date}</small></p>

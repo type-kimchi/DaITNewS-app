@@ -39,6 +39,11 @@ function Home({ articles }) {
     };
   };
 
+  const getCoverUrl = (article) => {
+    if (article.images && article.images.length > 0) return article.images[0];
+    return article.imageUrl || '';
+  };
+
   return (
     <div className="container mt-4">
       <h1 className="mb-4">DaITNew</h1>
@@ -48,7 +53,11 @@ function Home({ articles }) {
             <Link to={`/article/${article.id}`} className="text-decoration-none text-dark">
               <div className="card article-card">
                 <div className="article-square-img-container">
-                  <img src={article.imageUrl} className="article-square-img" alt={article.title} />
+                  {getCoverUrl(article) ? (
+                    <img src={getCoverUrl(article)} className="article-square-img" alt={article.title} />
+                  ) : (
+                    <div className="article-square-img placeholder-img">No Image</div>
+                  )}
                 </div>
                 
                 {/* Keyword Title Below Thumbnail - like dafanew style */}

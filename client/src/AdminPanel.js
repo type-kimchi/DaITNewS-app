@@ -12,16 +12,15 @@ function AdminPanel() {
   const [formData, setFormData] = useState({
     title: '',
     shortTitle: '',
-    imageUrl: '',
     summary: '',
     content: '', // content 필드 추가
     category: 'Daily IT News(데아뉴)',
     date: new Date().toISOString().split('T')[0]
   });
   const [previewMode, setPreviewMode] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [imageItems, setImageItems] = useState([]);
   const [imageMethod, setImageMethod] = useState('upload');
+  const [imageUrlInput, setImageUrlInput] = useState('');
   const [pasteAreaActive, setPasteAreaActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingArticles, setIsLoadingArticles] = useState(false); // 로딩 상태 추가
@@ -70,39 +69,48 @@ function AdminPanel() {
     }
   }, [fetchArticlesData]);
 
+  const addImageFiles = useCallback((files) => {
+    const imageFiles = Array.from(files || []).filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+
+    imageFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        setImageItems(prev => ([
+          ...prev,
+          {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            file,
+            preview: dataUrl,
+            url: ''
+          }
+        ]));
+      };
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
   // 클립보드 붙여넣기 이벤트 핸들러
   const handlePaste = useCallback((e) => {
     const items = e.clipboardData?.items;
     if (!items) return;
 
+    const files = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      
       if (item.type.indexOf('image') !== -1) {
-        e.preventDefault();
         const file = item.getAsFile();
-        
-        if (file) {
-          setImageFile(file);
-          
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const dataUrl = e.target.result;
-            setImagePreview(dataUrl);
-            setFormData(prevFormData => ({
-              ...prevFormData,
-              imageUrl: dataUrl
-            }));
-          };
-          reader.readAsDataURL(file);
-          
-          setPasteAreaActive(false);
-          alert('이미지가 붙여넣기되었습니다! 저장 시 Cloudinary에 업로드됩니다.');
-        }
-        break;
+        if (file) files.push(file);
       }
     }
-  }, []);
+
+    if (files.length > 0) {
+      e.preventDefault();
+      addImageFiles(files);
+      setPasteAreaActive(false);
+    }
+  }, [addImageFiles]);
 
   // 드래그 앤 드롭 핸들러들
   const handleDragOver = useCallback((e) => {
@@ -121,28 +129,14 @@ function AdminPanel() {
     
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      const file = files[0];
-      
-      if (file.type.startsWith('image/')) {
-        setImageFile(file);
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const dataUrl = e.target.result;
-          setImagePreview(dataUrl);
-          setFormData(prevFormData => ({
-            ...prevFormData,
-            imageUrl: dataUrl
-          }));
-        };
-        reader.readAsDataURL(file);
-        
-        alert('이미지가 업로드되었습니다! 저장 시 Cloudinary에 업로드됩니다.');
-      } else {
+      const hasImage = Array.from(files).some(file => file.type.startsWith('image/'));
+      if (!hasImage) {
         alert('이미지 파일만 업로드할 수 있습니다.');
+        return;
       }
+      addImageFiles(files);
     }
-  }, []);
+  }, [addImageFiles]);
 
   useEffect(() => {
     const handleGlobalPaste = (e) => {
@@ -159,20 +153,10 @@ function AdminPanel() {
 
   // 이미지 파일 선택 핸들러
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target.result;
-        setImagePreview(dataUrl);
-        setFormData(prevFormData => ({
-          ...prevFormData,
-          imageUrl: dataUrl
-        }));
-      };
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      addImageFiles(files);
+      e.target.value = '';
     }
   };
 
@@ -215,31 +199,67 @@ function AdminPanel() {
     });
   };
 
+  const handleAddImageUrl = () => {
+    const trimmed = imageUrlInput.trim();
+    if (!trimmed) return;
+    setImageItems(prev => ([
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        file: null,
+        preview: trimmed,
+        url: trimmed
+      }
+    ]));
+    setImageUrlInput('');
+  };
+
+  const moveImageItem = (index, direction) => {
+    setImageItems(prev => {
+      const next = [...prev];
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= next.length) return prev;
+      const [moved] = next.splice(index, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
+    });
+  };
+
+  const removeImageItem = (index) => {
+    setImageItems(prev => prev.filter((_, i) => i !== index));
+  };
+
   // ✅ handleSubmit 개선
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    let finalImageUrl = formData.imageUrl;
-    
-    // 파일이 있으면 Cloudinary에 업로드
-    if (imageFile) {
-      console.log('이미지 파일 업로드 중...', imageFile.name);
-      const uploadedUrl = await uploadImageToCloudinary(imageFile);
-      if (uploadedUrl) {
-        finalImageUrl = uploadedUrl;
-        console.log('업로드된 URL:', uploadedUrl);
-      } else {
-        const proceed = window.confirm('이미지 업로드에 실패했습니다. 이미지 없이 저장하시겠습니까?');
+    const itemsToUpload = imageItems;
+    let uploadedUrls = [];
+
+    if (itemsToUpload.length > 0) {
+      const results = await Promise.all(itemsToUpload.map(async (item) => {
+        if (item.url) return item.url;
+        if (!item.file) return null;
+        const uploadedUrl = await uploadImageToCloudinary(item.file);
+        return uploadedUrl;
+      }));
+
+      const failedCount = results.filter(url => !url).length;
+      if (failedCount > 0) {
+        const proceed = window.confirm(`이미지 ${failedCount}개 업로드에 실패했습니다. 성공한 이미지로만 저장할까요?`);
         if (!proceed) return;
-        finalImageUrl = '';
       }
+      uploadedUrls = results.filter(Boolean);
     }
-    
+
+    const finalImageUrl = uploadedUrls[0] || '';
+
     try {
       const articlePayload = {
         title: formData.title,
         shortTitle: formData.shortTitle,
         imageUrl: finalImageUrl,
+        images: uploadedUrls,
         summary: formData.summary,
         category: formData.category,
         date: formData.date,
@@ -267,14 +287,20 @@ function AdminPanel() {
     setFormData({
       title: article.title,
       shortTitle: article.shortTitle || '',
-      imageUrl: article.imageUrl,
       summary: article.summary,
       content: article.content || '',
       category: article.category,
       date: article.date
     });
-    setImagePreview(article.imageUrl);
-    setImageFile(null);
+    const existingImages = (article.images && article.images.length > 0)
+      ? article.images
+      : (article.imageUrl ? [article.imageUrl] : []);
+    setImageItems(existingImages.map((url) => ({
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      file: null,
+      preview: url,
+      url
+    })));
     setShowEditor(true);
   };
 
@@ -296,7 +322,6 @@ function AdminPanel() {
     setFormData({
       title: '',
       shortTitle: '',
-      imageUrl: '',
       summary: '',
       content: '',
       category: 'Daily IT News(데아뉴)',
@@ -305,9 +330,9 @@ function AdminPanel() {
     setEditingArticle(null);
     setShowEditor(false);
     setPreviewMode(false);
-    setImageFile(null);
-    setImagePreview('');
+    setImageItems([]);
     setImageMethod('upload');
+    setImageUrlInput('');
   };
 
   const handleLogout = () => {
@@ -505,10 +530,11 @@ function AdminPanel() {
                             type="file"
                             className="form-control"
                             accept="image/*"
+                            multiple
                             onChange={handleImageChange}
                           />
                           <small className="form-text text-success">
-                            💡 선택한 이미지는 Cloudinary에 자동 업로드됩니다
+                            💡 여러 장 선택 가능. 저장 시 Cloudinary에 자동 업로드됩니다
                           </small>
                         </div>
                       )}
@@ -550,48 +576,72 @@ function AdminPanel() {
                       
                       {imageMethod === 'url' && (
                         <div className="mb-2">
-                          <input
-                            type="url"
-                            className="form-control"
-                            name="imageUrl"
-                            value={formData.imageUrl}
-                            onChange={handleInputChange}
-                            placeholder="https://example.com/image.jpg"
-                          />
-                          <small className="form-text text-muted">
-                            외부 이미지 URL을 직접 입력
-                          </small>
-                        </div>
-                      )}
-                      
-                      {imagePreview && (
-                        <div className="mt-3">
-                          <label className="form-label">미리보기</label>
-                          <div className="position-relative">
-                            <img 
-                              src={imagePreview} 
-                              alt="미리보기" 
-                              className="img-fluid rounded border"
-                              style={{maxHeight: '200px', width: '100%', objectFit: 'cover'}}
+                          <div className="input-group">
+                            <input
+                              type="url"
+                              className="form-control"
+                              value={imageUrlInput}
+                              onChange={(e) => setImageUrlInput(e.target.value)}
+                              placeholder="https://example.com/image.jpg"
                             />
-                            <button 
+                            <button
                               type="button"
-                              className="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
-                              onClick={() => {
-                                setImagePreview('');
-                                setImageFile(null);
-                                setFormData({...formData, imageUrl: ''});
-                              }}
-                              title="이미지 제거"
+                              className="btn btn-outline-primary"
+                              onClick={handleAddImageUrl}
                             >
-                              ×
+                              추가
                             </button>
                           </div>
-                          {imageFile && (
-                            <small className="text-success d-block mt-1">
-                              ☁️ 저장 시 Cloudinary에 업로드됩니다
-                            </small>
-                          )}
+                          <small className="form-text text-muted">외부 이미지 URL을 추가합니다</small>
+                        </div>
+                      )}
+
+                      {imageItems.length > 0 && (
+                        <div className="mt-3">
+                          <label className="form-label">이미지 목록 (첫 번째가 대표 이미지)</label>
+                          <div className="d-grid gap-2">
+                            {imageItems.map((item, index) => (
+                              <div key={item.id} className="d-flex align-items-center gap-2 border rounded p-2">
+                                <img
+                                  src={item.preview || item.url}
+                                  alt={`이미지 ${index + 1}`}
+                                  className="rounded"
+                                  style={{ width: '64px', height: '64px', objectFit: 'cover' }}
+                                />
+                                <div className="flex-grow-1 small text-muted">
+                                  {index === 0 ? '대표 이미지' : `이미지 ${index + 1}`}
+                                </div>
+                                <div className="btn-group btn-group-sm">
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => moveImageItem(index, -1)}
+                                    disabled={index === 0}
+                                    title="위로"
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => moveImageItem(index, 1)}
+                                    disabled={index === imageItems.length - 1}
+                                    title="아래로"
+                                  >
+                                    ↓
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-danger"
+                                    onClick={() => removeImageItem(index)}
+                                    title="삭제"
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -642,8 +692,17 @@ function AdminPanel() {
               <div className="preview-content">
                 <h2>{formData.title}</h2>
                 <p className="text-muted">키워드: {formData.shortTitle}</p>
-                {(imagePreview || formData.imageUrl) && (
-                  <img src={imagePreview || formData.imageUrl} className="img-fluid mb-3" alt="Preview" />
+                {imageItems.length > 0 && (
+                  <div className="mb-3">
+                    {imageItems.map((item, index) => (
+                      <img
+                        key={item.id}
+                        src={item.preview || item.url}
+                        className="img-fluid mb-2"
+                        alt={`Preview ${index + 1}`}
+                      />
+                    ))}
+                  </div>
                 )}
                 <div style={{ whiteSpace: 'pre-wrap' }}>
                   {formData.summary}
