@@ -387,6 +387,8 @@ function AdminPanel() {
           <br />
           글 개수: {articles.length}개
           <br />
+          로딩 상태: {isLoadingArticles ? '불러오는 중' : '완료'}
+          <br />
           Cloudinary 설정: {
             process.env.REACT_APP_CLOUDINARY_CLOUD_NAME && process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET 
               ? '✅ 완료' 
