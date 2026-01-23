@@ -1,11 +1,24 @@
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
 
-const handleResponse = async (response) => {
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || 'Something went wrong');
+const parseResponseBody = async (response) => {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    return text;
   }
-  return response.json();
+};
+
+const handleResponse = async (response) => {
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const message = typeof body === 'string'
+      ? body
+      : (body && body.message) || `Request failed (${response.status})`;
+    throw new Error(message);
+  }
+  return body;
 };
 
 export const fetchArticles = async () => {
