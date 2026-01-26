@@ -112,6 +112,46 @@ function AdminPanel() {
     }
   }, [addImageFiles]);
 
+  // 텍스트 입력창에서 이미지 붙여넣기 처리 (자동 업로드 후 이미지 목록에 추가)
+  const handleEditorPaste = useCallback(async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageFiles = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type && item.type.indexOf('image') !== -1) {
+        const file = item.getAsFile();
+        if (file) imageFiles.push(file);
+      }
+    }
+
+    if (imageFiles.length === 0) return;
+
+    e.preventDefault();
+
+    const uploadedUrls = [];
+    for (const file of imageFiles) {
+      const url = await uploadImageToCloudinary(file);
+      if (url) uploadedUrls.push(url);
+    }
+
+    if (uploadedUrls.length === 0) {
+      alert('이미지 업로드에 실패했습니다.');
+      return;
+    }
+
+    setImageItems(prev => ([
+      ...prev,
+      ...uploadedUrls.map((url) => ({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        file: null,
+        preview: url,
+        url
+      }))
+    ]));
+  }, [uploadImageToCloudinary]);
+
   // 드래그 앤 드롭 핸들러들
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -479,6 +519,7 @@ function AdminPanel() {
                         rows="10"
                         value={formData.summary}
                         onChange={handleInputChange}
+                        onPaste={handleEditorPaste}
                         placeholder="마크다운 문법을 사용하여 작성하세요..."
                         required
                       />
