@@ -69,6 +69,38 @@ function AdminPanel() {
     }
   }, [fetchArticlesData]);
 
+  // ✅ Cloudinary 업로드 함수 개선 (stable callback for hooks)
+  const uploadImageToCloudinary = useCallback(async (file) => {
+    if (!file) return null;
+
+    // 환경변수 체크
+    if (!process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || !process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET) {
+      console.error('Cloudinary 환경변수가 설정되지 않았습니다.');
+      alert('Cloudinary 설정이 누락되었습니다. 관리자에게 문의하세요.');
+      return null;
+    }
+
+    setIsUploading(true);
+
+    try {
+      console.log('Cloudinary 업로드 시작...');
+      const result = await uploadToCloudinary(file);
+
+      if (result.success) {
+        console.log('Cloudinary 업로드 성공:', result.url);
+        return result.url;
+      } else {
+        throw new Error(result.error || '업로드에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('Cloudinary 업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다: ' + error.message);
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  }, []);
+
   const addImageFiles = useCallback((files) => {
     const imageFiles = Array.from(files || []).filter(file => file.type.startsWith('image/'));
     if (imageFiles.length === 0) return;
@@ -197,38 +229,6 @@ function AdminPanel() {
     if (files && files.length > 0) {
       addImageFiles(files);
       e.target.value = '';
-    }
-  };
-
-  // ✅ Cloudinary 업로드 함수 개선
-  const uploadImageToCloudinary = async (file) => {
-    if (!file) return null;
-    
-    // 환경변수 체크
-    if (!process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || !process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET) {
-      console.error('Cloudinary 환경변수가 설정되지 않았습니다.');
-      alert('Cloudinary 설정이 누락되었습니다. 관리자에게 문의하세요.');
-      return null;
-    }
-    
-    setIsUploading(true);
-    
-    try {
-      console.log('Cloudinary 업로드 시작...');
-      const result = await uploadToCloudinary(file);
-      
-      if (result.success) {
-        console.log('Cloudinary 업로드 성공:', result.url);
-        return result.url;
-      } else {
-        throw new Error(result.error || '업로드에 실패했습니다');
-      }
-    } catch (error) {
-      console.error('Cloudinary 업로드 실패:', error);
-      alert('이미지 업로드에 실패했습니다: ' + error.message);
-      return null;
-    } finally {
-      setIsUploading(false);
     }
   };
 
