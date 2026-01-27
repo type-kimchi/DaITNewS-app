@@ -46,7 +46,10 @@ function Home({ articles }) {
 
   return (
     <div className="container mt-4">
-      <h1 className="mb-4">DaITNew</h1>
+      <div className="mb-4">
+        <h1 className="mb-1">Daily IT NewS</h1>
+        <div className="text-muted" style={{ fontSize: '0.95rem', letterSpacing: '0.02em' }}>데아뉴</div>
+      </div>
       <div className="row">
         {articles.map(article => (
           <div className="col-md-4 mb-4" key={article.id}>
@@ -131,7 +134,10 @@ function App() {
   return (
     <div className="App">
       <nav className="navbar navbar-expand-lg navbar-light bg-light">
-        <Link className="navbar-brand" to="/" onClick={() => setIsNavCollapsed(true)}>DaITNewS</Link>
+        <Link className="navbar-brand" to="/" onClick={() => setIsNavCollapsed(true)}>
+          <div>Daily IT NewS</div>
+          <div className="text-muted" style={{ fontSize: '0.75rem', letterSpacing: '0.08em' }}>데아뉴</div>
+        </Link>
         <button className="navbar-toggler" type="button" aria-controls="navbarNav" aria-expanded={!isNavCollapsed} aria-label="Toggle navigation" onClick={handleNavToggle}>
           <span className="navbar-toggler-icon"></span>
         </button>

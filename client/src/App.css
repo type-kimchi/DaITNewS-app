@@ -9,6 +9,18 @@
   --radius-md: 14px;
 }
 
+@font-face {
+  font-family: "NanumSquare";
+  src: url("/fonts/NanumSquareB.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  font-family: "NanumSquare", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
 .article-square-img-container {
   width: 100%;
   padding-top: 108%;
