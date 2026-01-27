@@ -17,8 +17,10 @@
   font-display: swap;
 }
 
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
 body {
-  font-family: "NanumSquare", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
 .navbar-brand.brand-lockup {
@@ -29,14 +31,16 @@ body {
 }
 
 .brand-title {
-  letter-spacing: 0.28em;
+  letter-spacing: 0.16em;
   font-weight: 700;
+  font-family: "NanumSquare", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
 .brand-subtitle {
-  font-size: 0.75rem;
-  letter-spacing: 0.32em;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
   color: var(--muted);
+  font-family: "NanumSquare", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
 .article-square-img-container {
