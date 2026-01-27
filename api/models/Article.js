@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const articleSchema = new mongoose.Schema({
+  articleId: {
+    type: Number,
+    unique: true,
+    index: true,
+  },
   title: {
     type: String,
     required: true,
@@ -43,7 +48,7 @@ const articleSchema = new mongoose.Schema({
 articleSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {
-    ret.id = ret._id.toString();
+    ret.id = ret.articleId != null ? ret.articleId : ret._id.toString();
     delete ret._id;
     delete ret.__v;
     return ret;

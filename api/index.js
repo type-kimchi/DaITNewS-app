@@ -9,6 +9,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const Article = require('./models/Article'); // Article 모델 불러오기
+const Counter = require('./models/Counter');
 
 const app = express();
 
@@ -17,8 +18,31 @@ app.use(express.json()); // JSON 파싱을 위해 추가
 
 // MongoDB 연결
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected successfully'))
+  .then(async () => {
+    console.log('MongoDB connected successfully');
+    await ensureArticleIds();
+  })
   .catch(err => console.error('MongoDB connection error:', err));
+
+const getNextArticleId = async () => {
+  const counter = await Counter.findOneAndUpdate(
+    { name: 'articleId' },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  return counter.seq;
+};
+
+const ensureArticleIds = async () => {
+  const missing = await Article.find({ articleId: { $exists: false } }).sort({ createdAt: 1 });
+  if (!missing.length) return;
+
+  for (const doc of missing) {
+    const nextId = await getNextArticleId();
+    doc.articleId = nextId;
+    await doc.save();
+  }
+};
 
 // 기존의 아티클 데이터는 삭제합니다. 이제 데이터베이스를 사용합니다.
 
@@ -39,7 +63,10 @@ app.get('/api/articles', async (req, res) => {
 // 특정 아티클 가져오기
 app.get('/api/articles/:id', async (req, res) => {
   try {
-    const article = await Article.findById(req.params.id);
+    const articleId = Number(req.params.id);
+    const article = Number.isNaN(articleId)
+      ? await Article.findById(req.params.id)
+      : await Article.findOne({ articleId });
     if (article) {
       res.json(article);
     } else {
@@ -53,6 +80,7 @@ app.get('/api/articles/:id', async (req, res) => {
 // 새 아티클 생성
 app.post('/api/articles', async (req, res) => {
   const newArticle = new Article({
+    articleId: await getNextArticleId(),
     title: req.body.title,
     shortTitle: req.body.shortTitle,
     imageUrl: req.body.imageUrl,
@@ -74,7 +102,10 @@ app.post('/api/articles', async (req, res) => {
 // 아티클 수정
 app.put('/api/articles/:id', async (req, res) => {
   try {
-    const updatedArticle = await Article.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const articleId = Number(req.params.id);
+    const updatedArticle = Number.isNaN(articleId)
+      ? await Article.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      : await Article.findOneAndUpdate({ articleId }, req.body, { new: true });
     if (updatedArticle) {
       res.json(updatedArticle);
     } else {
@@ -88,7 +119,10 @@ app.put('/api/articles/:id', async (req, res) => {
 // 아티클 삭제
 app.delete('/api/articles/:id', async (req, res) => {
   try {
-    const deletedArticle = await Article.findByIdAndDelete(req.params.id);
+    const articleId = Number(req.params.id);
+    const deletedArticle = Number.isNaN(articleId)
+      ? await Article.findByIdAndDelete(req.params.id)
+      : await Article.findOneAndDelete({ articleId });
     if (deletedArticle) {
       res.json({ message: 'Article deleted', article: deletedArticle });
     } else {
