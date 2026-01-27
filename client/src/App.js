@@ -47,8 +47,7 @@ function Home({ articles }) {
   return (
     <div className="container mt-4">
       <div className="mb-4">
-        <h1 className="mb-1 brand-title">Daily IT NewS</h1>
-        <div className="brand-subtitle">데아뉴</div>
+        <h1 className="mb-1 brand-title">데아뉴</h1>
       </div>
       <div className="row">
         {articles.map(article => (
@@ -136,7 +135,6 @@ function App() {
       <nav className="navbar navbar-expand-lg navbar-light bg-light">
         <Link className="navbar-brand brand-lockup" to="/" onClick={() => setIsNavCollapsed(true)}>
           <div className="brand-title">Daily IT NewS</div>
-          <div className="brand-subtitle">데아뉴</div>
         </Link>
         <button className="navbar-toggler" type="button" aria-controls="navbarNav" aria-expanded={!isNavCollapsed} aria-label="Toggle navigation" onClick={handleNavToggle}>
           <span className="navbar-toggler-icon"></span>
