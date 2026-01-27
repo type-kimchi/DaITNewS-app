@@ -166,10 +166,31 @@ function AdminPanel() {
     e.target.value = '';
   }, [handleEditorImageFiles, editor]);
 
-  const handleInsertImageToEditor = useCallback((url) => {
-    if (!editor || !url) return;
+  const handleInsertImageToEditor = useCallback(async (item, index) => {
+    if (!editor || !item) return;
+
+    let url = item.url;
+    if (!url && item.file) {
+      const uploaded = await uploadImageToCloudinary(item.file);
+      if (uploaded) {
+        url = uploaded;
+        setImageItems((prev) => {
+          const next = [...prev];
+          if (next[index]) {
+            next[index] = { ...next[index], url: uploaded, preview: uploaded, file: null };
+          }
+          return next;
+        });
+      }
+    }
+
+    if (!url) {
+      alert('이미지를 먼저 업로드해주세요.');
+      return;
+    }
+
     editor.chain().focus().setImage({ src: url }).insertContent('<p>사진 설명</p>').run();
-  }, [editor]);
+  }, [editor, uploadImageToCloudinary]);
 
   const addImageFiles = useCallback((files) => {
     const imageFiles = Array.from(files || []).filter(file => file.type.startsWith('image/'));
@@ -744,7 +765,7 @@ function AdminPanel() {
                                   <button
                                     type="button"
                                     className="btn btn-outline-success"
-                                    onClick={() => handleInsertImageToEditor(item.url || item.preview)}
+                                    onClick={() => handleInsertImageToEditor(item, index)}
                                     title="본문에 삽입"
                                   >
                                     본문 삽입
