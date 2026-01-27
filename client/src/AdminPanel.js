@@ -32,7 +32,6 @@ function AdminPanel() {
 
   const pasteAreaRef = useRef(null);
   const editorFileInputRef = useRef(null);
-  const summaryRef = useRef(null);
 
   const categories = [
     'AI/Cloud',
