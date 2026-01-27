@@ -166,6 +166,11 @@ function AdminPanel() {
     e.target.value = '';
   }, [handleEditorImageFiles, editor]);
 
+  const handleInsertImageToEditor = useCallback((url) => {
+    if (!editor || !url) return;
+    editor.chain().focus().setImage({ src: url }).insertContent('<p>사진 설명</p>').run();
+  }, [editor]);
+
   const addImageFiles = useCallback((files) => {
     const imageFiles = Array.from(files || []).filter(file => file.type.startsWith('image/'));
     if (imageFiles.length === 0) return;
@@ -736,6 +741,14 @@ function AdminPanel() {
                                   {index === 0 ? '대표 이미지' : `이미지 ${index + 1}`}
                                 </div>
                                 <div className="btn-group btn-group-sm">
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-success"
+                                    onClick={() => handleInsertImageToEditor(item.url || item.preview)}
+                                    title="본문에 삽입"
+                                  >
+                                    본문 삽입
+                                  </button>
                                   <button
                                     type="button"
                                     className="btn btn-outline-secondary"
