@@ -189,7 +189,19 @@ function AdminPanel() {
       return;
     }
 
-    editor.chain().focus().setImage({ src: url }).insertContent('<p>사진 설명</p>').run();
+    try {
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          { type: 'image', attrs: { src: url } },
+          { type: 'paragraph', content: [{ type: 'text', text: '사진 설명' }] }
+        ])
+        .run();
+    } catch (err) {
+      console.error('이미지 삽입 실패:', err);
+      editor.chain().focus().insertContent(`<img src="${url}" /><p>사진 설명</p>`).run();
+    }
   }, [editor, uploadImageToCloudinary]);
 
   const addImageFiles = useCallback((files) => {
