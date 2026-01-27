@@ -11,7 +11,7 @@
 
 @font-face {
   font-family: "NanumSquare";
-  src: url("/fonts/NanumSquareB.ttf") format("truetype");
+  src: url("./assets/fonts/NanumSquareB.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
