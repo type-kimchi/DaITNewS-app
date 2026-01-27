@@ -101,6 +101,13 @@
   color: var(--muted);
 }
 
+.article-content img + p {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+  text-align: center;
+}
+
 .tiptap-editor {
   border: 1px solid var(--border);
   border-radius: 12px;
