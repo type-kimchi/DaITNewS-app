@@ -4,6 +4,22 @@ import { uploadToCloudinary } from './utils/cloudinary';
 import { fetchArticles, createArticle, updateArticle, deleteArticle } from './utils/api'; // API 함수 불러오기
 
 function AdminPanel() {
+  const renderMarkdownLite = (text) => {
+    if (!text) return '';
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const withImages = escaped.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+      const caption = alt ? `<figcaption>${alt}</figcaption>` : '';
+      return `<figure><img src="${url}" alt="${alt}" />${caption}</figure>`;
+    });
+    const blocks = withImages.split(/\n{2,}/).map((block) => {
+      if (block.includes('<figure>')) return block;
+      return `<p>${block.replace(/\n/g, '<br />')}</p>`;
+    });
+    return blocks.join('\n');
+  };
   const [articles, setArticles] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -26,6 +42,7 @@ function AdminPanel() {
   const [isLoadingArticles, setIsLoadingArticles] = useState(false); // 로딩 상태 추가
 
   const pasteAreaRef = useRef(null);
+  const summaryRef = useRef(null);
 
   const categories = [
     'AI/Cloud',
@@ -172,6 +189,22 @@ function AdminPanel() {
       alert('이미지 업로드에 실패했습니다.');
       return;
     }
+
+    const markdownBlocks = uploadedUrls.map((url) => `![이미지 설명](${url})`).join('\n\n');
+    setFormData((prev) => {
+      const textarea = summaryRef.current;
+      if (!textarea) {
+        return { ...prev, summary: prev.summary + (prev.summary ? '\n\n' : '') + markdownBlocks };
+      }
+
+      const start = textarea.selectionStart ?? prev.summary.length;
+      const end = textarea.selectionEnd ?? prev.summary.length;
+      const before = prev.summary.slice(0, start);
+      const after = prev.summary.slice(end);
+      const spacerBefore = before && !before.endsWith('\n') ? '\n' : '';
+      const spacerAfter = after && !after.startsWith('\n') ? '\n' : '';
+      return { ...prev, summary: `${before}${spacerBefore}${markdownBlocks}${spacerAfter}${after}` };
+    });
 
     setImageItems(prev => ([
       ...prev,
@@ -520,6 +553,7 @@ function AdminPanel() {
                         value={formData.summary}
                         onChange={handleInputChange}
                         onPaste={handleEditorPaste}
+                        ref={summaryRef}
                         placeholder="마크다운 문법을 사용하여 작성하세요..."
                         required
                       />
@@ -745,9 +779,10 @@ function AdminPanel() {
                     ))}
                   </div>
                 )}
-                <div style={{ whiteSpace: 'pre-wrap' }}>
-                  {formData.summary}
-                </div>
+                <div
+                  className="article-content"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdownLite(formData.summary) }}
+                />
                 <p className="text-muted mt-3">{formData.category} - {formData.date}</p>
               </div>
             )}

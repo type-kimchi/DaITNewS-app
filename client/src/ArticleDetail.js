@@ -56,13 +56,32 @@ function ArticleDetail() {
   console.log('Article data for rendering:', article);
   console.log('Article title:', article.title);
 
+  const renderMarkdownLite = (text) => {
+    if (!text) return '';
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const withImages = escaped.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+      const caption = alt ? `<figcaption>${alt}</figcaption>` : '';
+      return `<figure><img src="${url}" alt="${alt}" />${caption}</figure>`;
+    });
+    const blocks = withImages.split(/\n{2,}/).map((block) => {
+      if (block.includes('<figure>')) return block;
+      return `<p>${block.replace(/\n/g, '<br />')}</p>`;
+    });
+    return blocks.join('\n');
+  };
+
+  const renderText = article.content || article.summary || '';
+
   return (
     <div className="container mt-4">
       <Helmet>
         <title>{article.title} | DaITNewS</title>
-        <meta name="description" content={article.summary} />
+        <meta name="description" content={(article.summary || '').replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')} />
         <meta property="og:title" content={article.title} />
-        <meta property="og:description" content={article.summary} />
+        <meta property="og:description" content={(article.summary || '').replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')} />
         <meta property="og:image" content={article.imageUrl} />
         <meta property="og:url" content={window.location.href} />
         <meta property="og:type" content="article" />
@@ -78,7 +97,10 @@ function ArticleDetail() {
         article.imageUrl && <img src={article.imageUrl} className="img-fluid mb-3" alt={article.title} />
       )}
       <h1>{article.title}</h1>
-      <p>{article.summary}</p>
+      <div
+        className="article-content"
+        dangerouslySetInnerHTML={{ __html: renderMarkdownLite(renderText) }}
+      />
       <p><small className="text-muted">{article.category} - {article.date}</small></p>
       {/* In a real app, you'd have full article content here */}
 
