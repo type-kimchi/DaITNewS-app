@@ -21,9 +21,10 @@ body {
   font-family: "NanumSquare", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
-.brand-lockup {
-  display: inline-flex;
+.navbar-brand.brand-lockup {
+  display: flex !important;
   flex-direction: column;
+  align-items: flex-start;
   line-height: 1.05;
 }
 
