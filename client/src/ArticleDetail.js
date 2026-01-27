@@ -56,51 +56,45 @@ function ArticleDetail() {
   console.log('Article data for rendering:', article);
   console.log('Article title:', article.title);
 
-  const renderMarkdownLite = (text) => {
-    if (!text) return '';
-    const escaped = text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    const withImages = escaped.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
-      const caption = alt ? `<figcaption>${alt}</figcaption>` : '';
-      return `<figure><img src="${url}" alt="${alt}" />${caption}</figure>`;
-    });
-    const blocks = withImages.split(/\n{2,}/).map((block) => {
-      if (block.includes('<figure>')) return block;
-      return `<p>${block.replace(/\n/g, '<br />')}</p>`;
-    });
-    return blocks.join('\n');
-  };
+  const plainDescription = (article.summary || article.content || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  const renderText = article.content || article.summary || '';
+  const hasRichContent = Boolean(article.content);
 
   return (
     <div className="container mt-4">
       <Helmet>
         <title>{article.title} | DaITNewS</title>
-        <meta name="description" content={(article.summary || '').replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')} />
+        <meta name="description" content={plainDescription} />
         <meta property="og:title" content={article.title} />
-        <meta property="og:description" content={(article.summary || '').replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')} />
+        <meta property="og:description" content={plainDescription} />
         <meta property="og:image" content={article.imageUrl} />
         <meta property="og:url" content={window.location.href} />
         <meta property="og:type" content="article" />
       </Helmet>
       
-      {(article.images && article.images.length > 0) ? (
-        <div className="article-gallery mb-3">
-          {article.images.map((url, index) => (
-            <img key={url + index} src={url} className="img-fluid mb-2" alt={`${article.title} ${index + 1}`} />
-          ))}
-        </div>
-      ) : (
-        article.imageUrl && <img src={article.imageUrl} className="img-fluid mb-3" alt={article.title} />
-      )}
       <h1>{article.title}</h1>
-      <div
-        className="article-content"
-        dangerouslySetInnerHTML={{ __html: renderMarkdownLite(renderText) }}
-      />
+      {hasRichContent ? (
+        <div
+          className="article-content"
+          dangerouslySetInnerHTML={{ __html: article.content }}
+        />
+      ) : (
+        <>
+          {(article.images && article.images.length > 0) ? (
+            <div className="article-gallery mb-3">
+              {article.images.map((url, index) => (
+                <img key={url + index} src={url} className="img-fluid mb-2" alt={`${article.title} ${index + 1}`} />
+              ))}
+            </div>
+          ) : (
+            article.imageUrl && <img src={article.imageUrl} className="img-fluid mb-3" alt={article.title} />
+          )}
+          <p>{article.summary}</p>
+        </>
+      )}
       <p><small className="text-muted">{article.category} - {article.date}</small></p>
       {/* In a real app, you'd have full article content here */}
 

@@ -1,25 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import FileHandler from '@tiptap/extension-file-handler';
+import Placeholder from '@tiptap/extension-placeholder';
 import { uploadToCloudinary } from './utils/cloudinary';
 import { fetchArticles, createArticle, updateArticle, deleteArticle } from './utils/api'; // API 함수 불러오기
 
 function AdminPanel() {
-  const renderMarkdownLite = (text) => {
-    if (!text) return '';
-    const escaped = text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    const withImages = escaped.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
-      const caption = alt ? `<figcaption>${alt}</figcaption>` : '';
-      return `<figure><img src="${url}" alt="${alt}" />${caption}</figure>`;
-    });
-    const blocks = withImages.split(/\n{2,}/).map((block) => {
-      if (block.includes('<figure>')) return block;
-      return `<p>${block.replace(/\n/g, '<br />')}</p>`;
-    });
-    return blocks.join('\n');
-  };
   const [articles, setArticles] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -42,6 +31,7 @@ function AdminPanel() {
   const [isLoadingArticles, setIsLoadingArticles] = useState(false); // 로딩 상태 추가
 
   const pasteAreaRef = useRef(null);
+  const editorFileInputRef = useRef(null);
   const summaryRef = useRef(null);
 
   const categories = [
@@ -118,6 +108,65 @@ function AdminPanel() {
     }
   }, []);
 
+  const handleEditorImageFiles = useCallback(async (files, editor) => {
+    if (!files || files.length === 0 || !editor) return;
+
+    for (const file of files) {
+      const url = await uploadImageToCloudinary(file);
+      if (!url) continue;
+      editor.chain().focus().setImage({ src: url }).insertContent('<p>사진 설명</p>').run();
+      setImageItems((prev) => ([
+        ...prev,
+        {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          file: null,
+          preview: url,
+          url
+        }
+      ]));
+    }
+  }, [uploadImageToCloudinary]);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Image,
+      Placeholder.configure({
+        placeholder: '여기에 글을 작성하세요... (이미지는 붙여넣기/드래그/업로드 가능)'
+      }),
+      FileHandler.configure({
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+        onPaste: async (files, editorInstance) => {
+          await handleEditorImageFiles(files, editorInstance);
+        },
+        onDrop: async (files, editorInstance) => {
+          await handleEditorImageFiles(files, editorInstance);
+        }
+      })
+    ],
+    content: formData.content || '',
+    onUpdate: ({ editor: editorInstance }) => {
+      const html = editorInstance.getHTML();
+      const text = editorInstance.getText().trim();
+      setFormData((prev) => ({
+        ...prev,
+        content: html,
+        summary: text.slice(0, 200)
+      }));
+    }
+  });
+
+  const handleEditorImagePick = useCallback(() => {
+    editorFileInputRef.current?.click();
+  }, []);
+
+  const handleEditorImageChange = useCallback(async (e) => {
+    const files = Array.from(e.target.files || []).filter((file) => file.type.startsWith('image/'));
+    if (files.length === 0) return;
+    await handleEditorImageFiles(files, editor);
+    e.target.value = '';
+  }, [handleEditorImageFiles, editor]);
+
   const addImageFiles = useCallback((files) => {
     const imageFiles = Array.from(files || []).filter(file => file.type.startsWith('image/'));
     if (imageFiles.length === 0) return;
@@ -161,62 +210,6 @@ function AdminPanel() {
     }
   }, [addImageFiles]);
 
-  // 텍스트 입력창에서 이미지 붙여넣기 처리 (자동 업로드 후 이미지 목록에 추가)
-  const handleEditorPaste = useCallback(async (e) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    const imageFiles = [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.type && item.type.indexOf('image') !== -1) {
-        const file = item.getAsFile();
-        if (file) imageFiles.push(file);
-      }
-    }
-
-    if (imageFiles.length === 0) return;
-
-    e.preventDefault();
-
-    const uploadedUrls = [];
-    for (const file of imageFiles) {
-      const url = await uploadImageToCloudinary(file);
-      if (url) uploadedUrls.push(url);
-    }
-
-    if (uploadedUrls.length === 0) {
-      alert('이미지 업로드에 실패했습니다.');
-      return;
-    }
-
-    const markdownBlocks = uploadedUrls.map((url) => `![이미지 설명](${url})`).join('\n\n');
-    setFormData((prev) => {
-      const textarea = summaryRef.current;
-      if (!textarea) {
-        return { ...prev, summary: prev.summary + (prev.summary ? '\n\n' : '') + markdownBlocks };
-      }
-
-      const start = textarea.selectionStart ?? prev.summary.length;
-      const end = textarea.selectionEnd ?? prev.summary.length;
-      const before = prev.summary.slice(0, start);
-      const after = prev.summary.slice(end);
-      const spacerBefore = before && !before.endsWith('\n') ? '\n' : '';
-      const spacerAfter = after && !after.startsWith('\n') ? '\n' : '';
-      return { ...prev, summary: `${before}${spacerBefore}${markdownBlocks}${spacerAfter}${after}` };
-    });
-
-    setImageItems(prev => ([
-      ...prev,
-      ...uploadedUrls.map((url) => ({
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        file: null,
-        preview: url,
-        url
-      }))
-    ]));
-  }, [uploadImageToCloudinary]);
-
   // 드래그 앤 드롭 핸들러들
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -245,7 +238,9 @@ function AdminPanel() {
 
   useEffect(() => {
     const handleGlobalPaste = (e) => {
-      if (showEditor && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      const activeEl = document.activeElement;
+      const isEditable = activeEl && activeEl.getAttribute && activeEl.getAttribute('contenteditable') === 'true';
+      if (showEditor && !isEditable && activeEl.tagName !== 'INPUT' && activeEl.tagName !== 'TEXTAREA') {
         handlePaste(e);
       }
     };
@@ -305,6 +300,11 @@ function AdminPanel() {
   // ✅ handleSubmit 개선
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.content || formData.content === '<p></p>') {
+      alert('본문 내용을 입력해 주세요.');
+      return;
+    }
     
     const itemsToUpload = imageItems;
     let uploadedUrls = [];
@@ -375,6 +375,9 @@ function AdminPanel() {
       url
     })));
     setShowEditor(true);
+    if (editor) {
+      editor.commands.setContent(article.content || article.summary || '');
+    }
   };
 
   const handleDelete = async (articleId) => {
@@ -406,6 +409,9 @@ function AdminPanel() {
     setImageItems([]);
     setImageMethod('upload');
     setImageUrlInput('');
+    if (editor) {
+      editor.commands.setContent('');
+    }
   };
 
   const handleLogout = () => {
@@ -545,18 +551,62 @@ function AdminPanel() {
                     </div>
 
                     <div className="mb-3">
-                      <label className="form-label">내용 (마크다운 지원) *</label>
-                      <textarea
-                        className="form-control"
-                        name="summary"
-                        rows="10"
-                        value={formData.summary}
-                        onChange={handleInputChange}
-                        onPaste={handleEditorPaste}
-                        ref={summaryRef}
-                        placeholder="마크다운 문법을 사용하여 작성하세요..."
-                        required
+                      <label className="form-label">내용 (WYSIWYG) *</label>
+                      <div className="editor-toolbar btn-group mb-2" role="group">
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${editor?.isActive('bold') ? 'btn-dark' : 'btn-outline-dark'}`}
+                          onClick={() => editor?.chain().focus().toggleBold().run()}
+                        >
+                          Bold
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${editor?.isActive('italic') ? 'btn-dark' : 'btn-outline-dark'}`}
+                          onClick={() => editor?.chain().focus().toggleItalic().run()}
+                        >
+                          Italic
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${editor?.isActive('heading', { level: 2 }) ? 'btn-dark' : 'btn-outline-dark'}`}
+                          onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+                        >
+                          H2
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${editor?.isActive('bulletList') ? 'btn-dark' : 'btn-outline-dark'}`}
+                          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                        >
+                          • List
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${editor?.isActive('orderedList') ? 'btn-dark' : 'btn-outline-dark'}`}
+                          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+                        >
+                          1. List
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-dark"
+                          onClick={handleEditorImagePick}
+                        >
+                          이미지 업로드
+                        </button>
+                      </div>
+                      <EditorContent editor={editor} className="tiptap-editor" />
+                      <input
+                        ref={editorFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={handleEditorImageChange}
                       />
+                      <small className="form-text text-muted">
+                        이미지 붙여넣기/드래그 가능. 이미지 아래 텍스트를 입력하면 캡션으로 표시됩니다.
+                      </small>
                     </div>
                   </div>
                   
@@ -781,7 +831,7 @@ function AdminPanel() {
                 )}
                 <div
                   className="article-content"
-                  dangerouslySetInnerHTML={{ __html: renderMarkdownLite(formData.summary) }}
+                  dangerouslySetInnerHTML={{ __html: formData.content || '' }}
                 />
                 <p className="text-muted mt-3">{formData.category} - {formData.date}</p>
               </div>
