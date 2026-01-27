@@ -21,6 +21,23 @@ body {
   font-family: "NanumSquare", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
+.brand-lockup {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.brand-title {
+  letter-spacing: 0.28em;
+  font-weight: 700;
+}
+
+.brand-subtitle {
+  font-size: 0.75rem;
+  letter-spacing: 0.32em;
+  color: var(--muted);
+}
+
 .article-square-img-container {
   width: 100%;
   padding-top: 108%;
