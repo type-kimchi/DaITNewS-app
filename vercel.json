@@ -17,6 +17,7 @@
     { "src": "/community-guidelines/?", "dest": "/client/blindtype/community-guidelines/index.html" },
     { "src": "/child-safety-standards/?", "dest": "/client/blindtype/child-safety-standards/index.html" },
     { "src": "/blindtype/?", "dest": "/client/blindtype/index.html" },
+    { "src": "/blindtype/download/?", "dest": "/client/blindtype/download/index.html" },
     { "src": "/blindtype/privacy/?", "dest": "/client/blindtype/privacy/index.html" },
     { "src": "/blindtype/terms/?", "dest": "/client/blindtype/terms/index.html" },
     { "src": "/blindtype/delete-account/?", "dest": "/client/blindtype/delete-account/index.html" },
